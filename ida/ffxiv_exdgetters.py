@@ -58,7 +58,7 @@ if api is None:
 
                     if ea == 0xFFFFFFFFFFFFFFFF:
                         break
-                    
+
                     if sheetSearchPattern == None:
                         sheetEa = ea + sheetSearchOffset
                     else:
@@ -153,13 +153,13 @@ if api is None:
                 else:
                     self.delete_enum_members(enum_id)
                     idc.set_enum_bf(enum_id, False)
-                    
+
                 self.set_enum_width(enum_id, width)
                 if width == 1:
                     if idaapi.IDA_SDK_VERSION < 900:
                         self.add_enum_member(enum_id, f"{sheet_name}.tmp", self.get_enum_default_mask(enum_id))
                     self.set_enum_as_bf(enum_id)
-                        
+
                 for key in values:
                     self.add_enum_member(enum_id, f"{sheet_name}.{values[key]}", key)
 
@@ -234,13 +234,14 @@ if api is None:
                     yield ea
                     ea = ea + 1
                     ea = self.search_binary(ea, pattern, ida_search.SEARCH_DOWN)
-            
+
             def comment_rows(self, pattern: dict[str, int], values: dict[int, str]):
                 for pattern_key in pattern:
                     for ea in list(self.get_all_eas(pattern_key)):
                         sheetIdx = self.get_dword(ea + pattern[pattern_key])
-                        sheetName = values[sheetIdx]
-                        ida_bytes.set_cmt(ea, "Sheet: {0} ({1})".format(sheetName, sheetIdx), 0)
+                        if sheetIdx in values:
+                            sheetName = values[sheetIdx]
+                            ida_bytes.set_cmt(ea, "Sheet: {0} ({1})".format(sheetName, sheetIdx), 0)
                 pass
 
         api = IdaApi()
@@ -405,7 +406,7 @@ if api is None:
                 if name == "unsigned __int64" or name == "unsigned long long": name = "ulonglong"
                 path_parts = SymbolPathParser.parse(name)
                 return DataTypePath("/" + "/".join(path_parts[:-1]), path_parts[-1])
-            
+
             def comment_rows(self, pattern: dict[str, int], values: dict[int, str]):
                 pass
 

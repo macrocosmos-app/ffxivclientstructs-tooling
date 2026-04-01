@@ -285,14 +285,14 @@ if api is None:
                 return os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), "ffxiv_structs.yml"
                 )
-            
+
             def can_run(self):
                 return self.enum_exists("Component::Exd::SheetsEnum")
 
             def create_enum_struct(self, enum):
                 # type: (DefinedStructEnum) -> None
                 fullname = enum.type
-                
+
                 e = self.get_enum_id(fullname)
                 if e == idaapi.BADADDR:
                     e = self.create_enum(fullname)
@@ -360,9 +360,31 @@ if api is None:
                         offset - prev_size,
                     )
 
+            def calculate_padding_members(self, start_offset, end_offset):
+                GAP_THRESHOLD = 64
+                members = []
+                pos = start_offset
+                remaining = end_offset - pos
+
+                if remaining > GAP_THRESHOLD:
+                    members.append((pos, remaining, ida_bytes.byte_flag()))
+                    return members
+
+                while pos < end_offset:
+                    remaining = end_offset - pos
+                    flag = self.get_idc_type_from_size(pos)
+                    size = self.get_size_from_idc_type(flag)
+                    if size > remaining:
+                        flag = self.get_idc_type_from_size(remaining, pos)
+                        size = self.get_size_from_idc_type(flag)
+                    members.append((pos, size, flag))
+                    pos += size
+                    if size == 0:
+                        break
+                return members
+
             def create_struct_members(self, struct):
                 # type: (DefinedStruct) -> None
-                idaapi.begin_type_updating(idaapi.UTP_STRUCT)
                 fullname = self.clean_struct_name(struct.type)
                 s = self.get_struct(self.get_struct_id(fullname))
 
@@ -383,9 +405,10 @@ if api is None:
                     offset = field.offset
 
                     prev_size = self.get_struct_size(s)
-                    while offset > prev_size:
+                    if offset > prev_size:
                         contiguous_fields = False
-                        self.create_struct_member_fill(fullname, offset)
+                        for pad_offset, pad_size, pad_flag in self.calculate_padding_members(prev_size, offset):
+                            self.create_struct_member(s, 'field_{0:X}'.format(pad_offset), pad_offset, pad_flag, None, pad_size)
                         prev_size = self.get_struct_size(s)
 
                     field_is_base = field.base and contiguous_fields
@@ -448,13 +471,13 @@ if api is None:
                         )
 
                     meminfo = self.get_struct_member_by_name(s, field_name)
-                    if meminfo is not None:    
+                    if meminfo is not None:
                         if field_is_base:
                             if idaapi.IDA_SDK_VERSION >= 900:
                                 meminfo.set_baseclass()
                             else:
                                 meminfo.props |= self.get_base_class_flag()
-                                
+
                         array_size = field.size if hasattr(field, "size") else 0
                         self.set_struct_member_info(
                             s,
@@ -466,11 +489,9 @@ if api is None:
 
                 if struct.size is not None and struct.size != 0:
                     prev_size = self.get_struct_size(s)
-                    while struct.size > prev_size:
-                        self.create_struct_member_fill(fullname, struct.size)
-                        prev_size = self.get_struct_size(s)
-
-                idaapi.end_type_updating(idaapi.UTP_STRUCT)
+                    if struct.size > prev_size:
+                        for pad_offset, pad_size, pad_flag in self.calculate_padding_members(prev_size, struct.size):
+                            self.create_struct_member(s, 'field_{0:X}'.format(pad_offset), pad_offset, pad_flag, None, pad_size)
 
             def create_vtable(self, struct):
                 # type: (DefinedStruct) -> None
@@ -633,7 +654,7 @@ if api is None:
                     )
                     == ida_kernwin.ASKBTN_YES
                 )
-            
+
         full_padding = (
             ida_kernwin.ask_buttons(
                 "Full Padding",
@@ -670,7 +691,7 @@ if api is None:
         class GhidraApi(BaseApi):
             def can_run(self):
                 return True
-            
+
             def get_size_from_type(self, name):
                 # type: (str) -> int
                 dt = self.get_datatype(name)
@@ -932,7 +953,7 @@ if api is None:
                                 func.name,
                                 "vf{0}".format(func.offset / 8),
                             )
-                
+
                 if struct.vtable_size:
                     vt_size = struct.vtable_size
                     vt_type.setLength(vt_size)
@@ -1069,7 +1090,7 @@ if api is None:
         class BinjaApi(BaseApi):
             def can_run(self):
                 return True
-            
+
             def get_binja_type(self, name):
                 # type: (str) -> str
                 lookup = {
@@ -1305,7 +1326,7 @@ def run():
     print("{0} Deleting old enums and creating new ones".format(get_time()))
     for enum in yaml.enums:
         api.delete_enum(enum)
-    
+
     for enum in yaml.enums:
         api.create_enum_struct(enum)
 
@@ -1314,8 +1335,12 @@ def run():
         api.create_struct(struct)
 
     print("{0} Creating members for structs".format(get_time()))
-    for struct in yaml.structs:
+    idaapi.begin_type_updating(idaapi.UTP_STRUCT)
+    structs_len = len(yaml.structs)
+    for idx, struct in enumerate(yaml.structs):
+        print(f'{get_time()} Creating members for {idx}/{structs_len} - {struct.name}')
         api.create_struct_members(struct)
+    idaapi.end_type_updating(idaapi.UTP_STRUCT)
 
     print("{0} Creating vtables for structs".format(get_time()))
     for struct in yaml.structs:
