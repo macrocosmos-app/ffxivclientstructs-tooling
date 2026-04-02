@@ -83,7 +83,7 @@ class ExcelColumnDefinition:
     def __lt__(self, other):
         # type: (ExcelColumnDefinition) -> bool
         return self.offset < other.offset
-    
+
     def __eq__(self, other):
         return self.offset == other.offset and self.type == other.offset
 
@@ -126,18 +126,14 @@ class ExcelHeaderFile:
             raise Exception("Invalid EXHF header")
         self.column_definitions: list[ExcelColumnDefinition] = []
         for i in range(self.header.column_count):
-            self.column_definitions.append(
-                ExcelColumnDefinition(self.data[32 + (i * 4) : 32 + ((i + 1) * 4)])
-            )
+            self.column_definitions.append(ExcelColumnDefinition(self.data[32 + (i * 4) : 32 + ((i + 1) * 4)]))
         self.column_definitions = sorted(self.column_definitions)
         self.pagination: list[ExcelDataPagination] = []
         for i in range(self.header.page_count):
             self.pagination.append(
                 ExcelDataPagination(
                     self.data[
-                        32
-                        + (self.header.column_count * 4)
-                        + (i * 4) : 32
+                        32 + (self.header.column_count * 4) + (i * 4) : 32
                         + (self.header.column_count * 4)
                         + ((i + 1) * 4)
                     ]
@@ -145,14 +141,7 @@ class ExcelHeaderFile:
             )
         self.languages: list[int] = []
         for i in range(self.header.language_count):
-            self.languages.append(
-                self.data[
-                    32
-                    + (self.header.column_count * 4)
-                    + (self.header.page_count * 4)
-                    + i
-                ]
-            )
+            self.languages.append(self.data[32 + (self.header.column_count * 4) + (self.header.page_count * 4) + i])
 
     def map_names(self, names: list[Definition]) -> tuple[dict[int, tuple[str, str]], dict[str, dict[int, str]], int]:
         """
@@ -169,15 +158,10 @@ class ExcelHeaderFile:
         enumMapped: dict[str, dict[int, str]] = {}
         largest_offset_index: int = 0
         for i in range(self.header.column_count):
-            if (
-                self.column_definitions[i].offset
-                > self.column_definitions[largest_offset_index].offset
-            ):
+            if self.column_definitions[i].offset > self.column_definitions[largest_offset_index].offset:
                 largest_offset_index = i
 
-        size = self.column_definitions[
-            largest_offset_index
-        ].offset + column_data_type_to_size(
+        size = self.column_definitions[largest_offset_index].offset + column_data_type_to_size(
             self.column_definitions[largest_offset_index].type
         )
 
@@ -190,25 +174,34 @@ class ExcelHeaderFile:
         else:
             for i in range(self.header.column_count):
                 col_def = self.column_definitions[i]
-                if (
-                    col_def.offset in mapped
-                    and mapped[col_def.offset] is not None
-                ):
-                    if (col_def.type in {ExcelColumnDataType.PackedBool0, ExcelColumnDataType.PackedBool1, ExcelColumnDataType.PackedBool2, ExcelColumnDataType.PackedBool3, ExcelColumnDataType.PackedBool4, ExcelColumnDataType.PackedBool5, ExcelColumnDataType.PackedBool6, ExcelColumnDataType.PackedBool7}):
+                if col_def.offset in mapped and mapped[col_def.offset] is not None:
+                    if col_def.type in {
+                        ExcelColumnDataType.PackedBool0,
+                        ExcelColumnDataType.PackedBool1,
+                        ExcelColumnDataType.PackedBool2,
+                        ExcelColumnDataType.PackedBool3,
+                        ExcelColumnDataType.PackedBool4,
+                        ExcelColumnDataType.PackedBool5,
+                        ExcelColumnDataType.PackedBool6,
+                        ExcelColumnDataType.PackedBool7,
+                    }:
                         name = "PackedBool{0:X}".format(col_def.offset)
-                        if (name in enumMapped):
-                            enumMapped["PackedBool{0:X}".format(col_def.offset)][(1 << col_def.type - ExcelColumnDataType.PackedBool0)] = "{0}_{1}".format(name, names[i].get_name())
+                        if name in enumMapped:
+                            enumMapped["PackedBool{0:X}".format(col_def.offset)][
+                                (1 << col_def.type - ExcelColumnDataType.PackedBool0)
+                            ] = "{0}_{1}".format(name, names[i].get_name())
                         else:
                             # this should never be hit but just to be safe
-                            enumMapped[name] = {(1 << col_def.type - ExcelColumnDataType.PackedBool0): "{0}_{1}".format(name, names[i].get_name())}
-                    else: 
+                            enumMapped[name] = {
+                                (1 << col_def.type - ExcelColumnDataType.PackedBool0): "{0}_{1}".format(
+                                    name, names[i].get_name()
+                                )
+                            }
+                    else:
                         [_, name] = mapped[col_def.offset]
                         if name.split("_")[0] == "Unknown":
                             continue
-                        if (
-                            column_data_type_to_c_type(col_def.type)
-                            != "unsigned __int8"
-                        ):
+                        if column_data_type_to_c_type(col_def.type) != "unsigned __int8":
                             continue
                         else:
                             mapped[col_def.offset] = (
@@ -216,13 +209,23 @@ class ExcelHeaderFile:
                                 names[i].get_name(),
                             )
                 else:
-                    if(col_def.type in {ExcelColumnDataType.PackedBool0, ExcelColumnDataType.PackedBool1, ExcelColumnDataType.PackedBool2, ExcelColumnDataType.PackedBool3, ExcelColumnDataType.PackedBool4, ExcelColumnDataType.PackedBool5, ExcelColumnDataType.PackedBool6, ExcelColumnDataType.PackedBool7}):
+                    if col_def.type in {
+                        ExcelColumnDataType.PackedBool0,
+                        ExcelColumnDataType.PackedBool1,
+                        ExcelColumnDataType.PackedBool2,
+                        ExcelColumnDataType.PackedBool3,
+                        ExcelColumnDataType.PackedBool4,
+                        ExcelColumnDataType.PackedBool5,
+                        ExcelColumnDataType.PackedBool6,
+                        ExcelColumnDataType.PackedBool7,
+                    }:
                         name = "PackedBool{0:X}".format(col_def.offset)
-                        mapped[col_def.offset] = (
-                            f"Component::Exd::Sheets::{self.name}::{name}",
-                            name
-                        )
-                        enumMapped[name] = {(1 << col_def.type - ExcelColumnDataType.PackedBool0): "{0}_{1}".format(name, names[i].get_name())}
+                        mapped[col_def.offset] = (f"Component::Exd::Sheets::{self.name}::{name}", name)
+                        enumMapped[name] = {
+                            (1 << col_def.type - ExcelColumnDataType.PackedBool0): "{0}_{1}".format(
+                                name, names[i].get_name()
+                            )
+                        }
                     else:
                         mapped[self.column_definitions[i].offset] = (
                             column_data_type_to_c_type(self.column_definitions[i].type),
@@ -286,10 +289,7 @@ def column_data_type_to_size(column_data_type):
         or column_data_type == ExcelColumnDataType.PackedBool7
     ):
         return 1
-    elif (
-        column_data_type == ExcelColumnDataType.Int16
-        or column_data_type == ExcelColumnDataType.UInt16
-    ):
+    elif column_data_type == ExcelColumnDataType.Int16 or column_data_type == ExcelColumnDataType.UInt16:
         return 2
     elif (
         column_data_type == ExcelColumnDataType.Int32
@@ -298,8 +298,5 @@ def column_data_type_to_size(column_data_type):
         or column_data_type == ExcelColumnDataType.String
     ):
         return 4
-    elif (
-        column_data_type == ExcelColumnDataType.Int64
-        or column_data_type == ExcelColumnDataType.UInt64
-    ):
+    elif column_data_type == ExcelColumnDataType.Int64 or column_data_type == ExcelColumnDataType.UInt64:
         return 8

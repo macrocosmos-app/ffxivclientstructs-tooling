@@ -46,9 +46,7 @@ class SqPackHeader:
     def __init__(self, file):
         # type: (BufferedReader) -> None
         self.magic = file.read(8)
-        self.platform_id = SqPackPlatformId(
-            int.from_bytes(file.read(1), byteorder="little")
-        )
+        self.platform_id = SqPackPlatformId(int.from_bytes(file.read(1), byteorder="little"))
         self.unknown = file.read(3)
         if self.platform_id != SqPackPlatformId.PS3:
             self.size = int.from_bytes(file.read(4), byteorder="little")
@@ -76,9 +74,7 @@ class SqPackIndexHeader:
         self.synonym_data_offset = int.from_bytes(bytes[84:88], byteorder="little")
         self.synonym_data_size = int.from_bytes(bytes[88:92], byteorder="little")
         self.synonym_data_hash = bytes[92:156]
-        self.empty_block_data_offset = int.from_bytes(
-            bytes[156:160], byteorder="little"
-        )
+        self.empty_block_data_offset = int.from_bytes(bytes[156:160], byteorder="little")
         self.empty_block_data_size = int.from_bytes(bytes[160:164], byteorder="little")
         self.empty_block_data_hash = bytes[164:228]
         self.dir_index_data_offset = int.from_bytes(bytes[228:232], byteorder="little")
@@ -175,9 +171,7 @@ class SqPack:
         self.load_index_header()
         self.load_hash_table()
         self.data_files: list[str] = []
-        for file in get_sqpack_files(
-            self.root, self.path.rsplit("\\", 1)[0].split("\\")[-1]
-        ):
+        for file in get_sqpack_files(self.root, self.path.rsplit("\\", 1)[0].split("\\")[-1]):
             for i in range(0, self.index_header.number_of_data_file):
                 name = self.path.rsplit(".", 1)[0] + ".dat" + str(i)
                 if file == name:
@@ -210,16 +204,10 @@ class SqPack:
             if block_header.dat_block_type == 32000:
                 data.append(self.file.read(block_header.block_data_size))
             else:
-                data.append(
-                    zlib.decompress(
-                        self.file.read(block_header.block_data_size), wbits=-15
-                    )
-                )
+                data.append(zlib.decompress(self.file.read(block_header.block_data_size), wbits=-15))
 
         return data
 
     def __repr__(self):
         # type: () -> str
-        return "Path: {0} Header: {1}".format(
-            os.path.join(self.root, "sqpack", self.path), self.header
-        )
+        return "Path: {0} Header: {1}".format(os.path.join(self.root, "sqpack", self.path), self.header)

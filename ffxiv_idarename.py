@@ -24,6 +24,7 @@ if sys.version_info[0] >= 3:
 
 # region Api
 
+
 class BaseApi(object):
     @property
     @abstractmethod
@@ -206,7 +207,6 @@ if api is None:
     else:
         # noinspection PyUnresolvedReferences
         class IdaApi(BaseApi):
-
             @property
             def data_file_path(self):
                 return os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.yml")
@@ -227,7 +227,7 @@ if api is None:
                 name = idc.get_name(ea)
                 # if name is None or '' and segment name is .text then create the function and get the name of it.
                 # this is done for parts of the code that has no xrefs to it due to how IDA detects function boundaries
-                if (name is None or name == '') and idc.get_segm_name(ea) == '.text':
+                if (name is None or name == "") and idc.get_segm_name(ea) == ".text":
                     finf = ida_funcs.func_t()
                     finf.start_ea = ea
                     finf.end_ea = idc.BADADDR
@@ -255,8 +255,11 @@ if api is None:
                     idc.create_insn(ea)
                     idc.add_func(ea)
                     current_func_name = api.get_addr_name(ea)
-                    print("Info: qword in vtbl of {1} at 0x{0:X}, it may be an offset to undefined code".format(ea,
-                                                                                                                class_name))
+                    print(
+                        "Info: qword in vtbl of {1} at 0x{0:X}, it may be an offset to undefined code".format(
+                            ea, class_name
+                        )
+                    )
 
                 # Previously renamed as a vfunc
                 if current_func_name.startswith(class_name):
@@ -305,11 +308,13 @@ if api is None:
                 if current_func_name == proposed_qualified_func_name:
                     return ""
 
-                if any(current_func_name.startswith(prefix) for prefix in ("sub_", "nullsub_", "loc_", "qword_", "unknown_libname_", "?", "_")):
+                if any(
+                    current_func_name.startswith(prefix)
+                    for prefix in ("sub_", "nullsub_", "loc_", "qword_", "unknown_libname_", "?", "_")
+                ):
                     return proposed_qualified_func_name
 
                 return None
-
 
         api = IdaApi()
 
@@ -338,7 +343,8 @@ if api is None:
 
             def is_offset(self, ea):
                 data = getDataAt(toAddr(ea))
-                if not data: return False
+                if not data:
+                    return False
                 return data.isPointer()
 
             def xrefs_to(self, ea):
@@ -406,7 +412,6 @@ if api is None:
 
                 return None
 
-
         api = GhidraApi()
 
 # endregion
@@ -435,7 +440,7 @@ if api is None:
 
             def get_qword(self, ea):
                 bytes = bv.read(ea, 8)
-                return int.from_bytes(bytes, byteorder='little')
+                return int.from_bytes(bytes, byteorder="little")
 
             def get_addr_name(self, ea):
                 func = bv.get_function_at(ea)
@@ -458,14 +463,7 @@ if api is None:
                 if sym:
                     # No good way to clone a symbol (afaik), so remake it
                     new_sym = binaryninja.types.Symbol(
-                        sym.type,
-                        ea,
-                        name,
-                        sym.full_name,
-                        sym.raw_name,
-                        sym.binding,
-                        sym.namespace,
-                        sym.ordinal
+                        sym.type, ea, name, sym.full_name, sym.raw_name, sym.binding, sym.namespace, sym.ordinal
                     )
 
                     if sym.auto:
@@ -477,11 +475,7 @@ if api is None:
 
                 data_var = bv.get_data_var_at(ea)
                 if data_var:
-                    new_sym = binaryninja.types.Symbol(
-                        binaryninja.types.SymbolType.DataSymbol,
-                        ea,
-                        name
-                    )
+                    new_sym = binaryninja.types.Symbol(binaryninja.types.SymbolType.DataSymbol, ea, name)
                     bv.define_user_symbol(new_sym)
                     return True
 
@@ -512,7 +506,6 @@ if api is None:
                     return ""
                 return proposed_qualified_func_name
 
-
         api = BinjaApi()
 
 # endregion
@@ -523,6 +516,7 @@ if api is None:
 
 # endregion
 
+
 def load_data():
     with open(api.data_file_path, "r") as fd:
         data = yaml.safe_load(fd)
@@ -530,17 +524,16 @@ def load_data():
     if data.get("globals"):
         for ea, name in data["globals"].items():
             if not isinstance(ea, (int, long)):
-                print('Warning: {0} has an invalid address {1}'.format(name, ea))
+                print("Warning: {0} has an invalid address {1}".format(name, ea))
                 continue
             api.set_addr_name(ea, name)
 
     if data.get("functions"):
         for ea, name in data["functions"].items():
             if not isinstance(ea, (int, long)):
-                print('Warning: {0} has an invalid address {1}'.format(name, ea))
+                print("Warning: {0} has an invalid address {1}".format(name, ea))
                 continue
             api.set_addr_name(ea, name)
-
 
     if data.get("classes"):
         factory = FfxivClassFactory()
@@ -553,12 +546,15 @@ def load_data():
             vfuncs = class_data.pop("vfuncs", {})
             funcs = class_data.pop("funcs", {})
             instances_raw = class_data.pop("instances", [])
-            instances = [(instance["ea"], instance["name"] if "name" in instance else "Instance") for instance in instances_raw] if instances_raw is not None else []
+            instances = (
+                [(instance["ea"], instance["name"] if "name" in instance else "Instance") for instance in instances_raw]
+                if instances_raw is not None
+                else []
+            )
             for leftover in class_data:
-                print("Warning: Extra key \"{0}\" present in {1}".format(leftover, class_name))
+                print('Warning: Extra key "{0}" present in {1}'.format(leftover, class_name))
 
-            factory.register(
-                class_name=class_name, vtbls=vtbls, vfuncs=vfuncs, funcs=funcs, instances=instances)
+            factory.register(class_name=class_name, vtbls=vtbls, vfuncs=vfuncs, funcs=funcs, instances=instances)
 
         factory.finalize()
 
@@ -592,22 +588,23 @@ class FfxivClassFactory:
         if not funcs:
             funcs = {}
 
-        for (vtbl_ea, _) in vtbls:
+        for vtbl_ea, _ in vtbls:
             if vtbl_ea != 0x0 and vtbl_ea in self._vtbl_addresses:
                 print("Error: Multiple vtables are defined at 0x{0:X}".format(vtbl_ea))
                 return
 
         if class_name in self._classes:
-            print("Error: Multiple classes are registered with the name \"{0}\"".format(class_name))
+            print('Error: Multiple classes are registered with the name "{0}"'.format(class_name))
             return
-        for (vtbl_ea, _) in vtbls:
+        for vtbl_ea, _ in vtbls:
             self._vtbl_addresses.append(vtbl_ea)
 
         if not instances:
             instances = []
 
         self._classes[class_name] = FfxivClass(
-            class_name=class_name, vtbls=vtbls, vfuncs=vfuncs, funcs=funcs, instances=instances)
+            class_name=class_name, vtbls=vtbls, vfuncs=vfuncs, funcs=funcs, instances=instances
+        )
 
     def finalize(self):
         """
@@ -637,8 +634,11 @@ class FfxivClassFactory:
                 for idx, vtbl in enumerate(cls.vtbls):
                     if vtbl.resolved_base is None and vtbl.base_name:
                         if vtbl.base_name not in self._classes:
-                            print("Warning: Inherited class \"{0}\" is not documented, add a placeholder entry".format(
-                                vtbl.base_name))
+                            print(
+                                'Warning: Inherited class "{0}" is not documented, add a placeholder entry'.format(
+                                    vtbl.base_name
+                                )
+                            )
                             self.register(class_name=vtbl.base_name)
                         vtbl.resolved_base = self._classes[vtbl.base_name]
                         if idx == 0:
@@ -739,7 +739,7 @@ class FfxivClass:
         if self._main_vtbl_size == 0:
             self._main_vtbl_size = 1  # Set to 1, skip the first entry
             for ea in itertools.count(self.vtbls[0].ea + 8, 8):
-                if api.get_addr_name(ea) != '':
+                if api.get_addr_name(ea) != "":
                     break
 
                 if api.is_offset(ea) and api.xrefs_to(ea) == []:
@@ -749,8 +749,10 @@ class FfxivClass:
 
             if self.vtbls[0].resolved_base and self._main_vtbl_size < self.vtbls[0].resolved_base._main_vtbl_size:
                 print(
-                    "Error: The sum of \"{0}\"'s base vtbl sizes ({1}) is greater than the actual class itself ({2})"
-                        .format(self.name, self.vtbls[0].resolved_base._main_vtbl_size, self._main_vtbl_size))
+                    'Error: The sum of "{0}"\'s base vtbl sizes ({1}) is greater than the actual class itself ({2})'.format(
+                        self.name, self.vtbls[0].resolved_base._main_vtbl_size, self._main_vtbl_size
+                    )
+                )
 
         return self._main_vtbl_size
 
@@ -788,7 +790,8 @@ class FfxivClass:
         """
         if self.vtbls:
             return self._finalized and all(
-                vtbl.resolved_base is not None and vtbl.resolved_base._finalized for vtbl in self.vtbls)
+                vtbl.resolved_base is not None and vtbl.resolved_base._finalized for vtbl in self.vtbls
+            )
         else:
             return self._finalized
 
@@ -833,8 +836,11 @@ class FfxivClass:
         if self.vtbls and self.vtbls[0].resolved_base:
             for idx, base_vfunc_name in self.vtbls[0].resolved_base.vfuncs.items():
                 if idx in self.vfuncs:
-                    print("Warning: 0x{0:X} \"{1}\" overwrites the name of inherited function \"{2}\"".format(
-                        self.vtbls[0].ea, self.name, base_vfunc_name))
+                    print(
+                        'Warning: 0x{0:X} "{1}" overwrites the name of inherited function "{2}"'.format(
+                            self.vtbls[0].ea, self.name, base_vfunc_name
+                        )
+                    )
                     pass
                 else:
                     self.vfuncs[idx] = base_vfunc_name
@@ -865,8 +871,7 @@ class FfxivClass:
         """
         api.set_addr_name(self.vtbls[0].ea, api.format_class_name_for_vtbl(self.name))
         for vtbl in self.vtbls[1:]:
-            api.set_addr_name(vtbl.ea, api.format_class_name_for_secondary_vtbl(self.name,
-                                                                                vtbl.base_name))
+            api.set_addr_name(vtbl.ea, api.format_class_name_for_secondary_vtbl(self.name, vtbl.base_name))
 
     def _write_vtbl_functions(self):
         """
@@ -893,34 +898,42 @@ class FfxivClass:
                 proposed_func_name = vfunc_names.get(func_idx, "vf{0}".format(func_idx))
                 formatted_class_name = api.format_class_name(class_name)
 
-                formatted_func_name = api.format_vfunc_name(vfunc_ea, current_func_name, proposed_func_name,
-                                                            formatted_class_name,
-                                                            base_class_names)
+                formatted_func_name = api.format_vfunc_name(
+                    vfunc_ea, current_func_name, proposed_func_name, formatted_class_name, base_class_names
+                )
 
                 if formatted_func_name == "":
                     pass
                 elif formatted_func_name is None:
                     print(
-                        "Error: Function at 0x{0:X} had unexpected name \"{1}\" during naming of {2}.{3} (vtbl[{4}])"
-                            .format(vfunc_ea, current_func_name, self.name, proposed_func_name, func_idx))
+                        'Error: Function at 0x{0:X} had unexpected name "{1}" during naming of {2}.{3} (vtbl[{4}])'.format(
+                            vfunc_ea, current_func_name, self.name, proposed_func_name, func_idx
+                        )
+                    )
                 else:
                     vtbl_builder.append((vfunc_ea, formatted_func_name))
 
             return vtbl_builder
 
         if self.vtbls:
-            formatted_base_class_names = [api.format_class_name(node.name) for node in
-                                              PreOrderIter(self.inheritance_tree)]
+            formatted_base_class_names = [
+                api.format_class_name(node.name) for node in PreOrderIter(self.inheritance_tree)
+            ]
             formatted_base_class_names.remove(self.name)
             for idx, vtbl in enumerate(self.vtbls):
                 if idx == 0:
-                    funcs = collect_vtbl_functions(vtbl.ea, self.main_vtbl_size, self.name, self.vfuncs,
-                                                   formatted_base_class_names)
+                    funcs = collect_vtbl_functions(
+                        vtbl.ea, self.main_vtbl_size, self.name, self.vfuncs, formatted_base_class_names
+                    )
                 else:
-                    funcs = collect_vtbl_functions(vtbl.ea, vtbl.resolved_base.main_vtbl_size,
-                                                   self.name + "___" + vtbl.resolved_base.name,
-                                                   vtbl.resolved_base.vfuncs, formatted_base_class_names)
-                for (func_ea, func_name) in funcs:
+                    funcs = collect_vtbl_functions(
+                        vtbl.ea,
+                        vtbl.resolved_base.main_vtbl_size,
+                        self.name + "___" + vtbl.resolved_base.name,
+                        vtbl.resolved_base.vfuncs,
+                        formatted_base_class_names,
+                    )
+                for func_ea, func_name in funcs:
                     api.set_addr_name(func_ea, func_name)
 
     def _write_funcs(self):
@@ -935,8 +948,11 @@ class FfxivClass:
             if func_name == "":
                 pass
             elif func_name is None:
-                print("Error: Function at 0x{0:X} had unexpected name \"{1}\" during naming of {2}.{3}"
-                      .format(func_ea, current_func_name, self.name, proposed_func_name))
+                print(
+                    'Error: Function at 0x{0:X} had unexpected name "{1}" during naming of {2}.{3}'.format(
+                        func_ea, current_func_name, self.name, proposed_func_name
+                    )
+                )
             else:
                 api.set_addr_name(func_ea, func_name)
 
@@ -945,14 +961,14 @@ class FfxivClass:
         Write the names of all instances
         :return: None
         """
-        for (instance_ea, instance_name) in self.instances:
+        for instance_ea, instance_name in self.instances:
             name = "g_{}_{}".format(self.name, instance_name)
             api.set_addr_name(instance_ea, name)
 
     # endregion
 
     def __repr__(self):
-        return "<{0}(\"{1}\")>".format(self.__class__.__name__, self.name)
+        return '<{0}("{1}")>'.format(self.__class__.__name__, self.name)
 
 
 # endregion

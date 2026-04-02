@@ -13,6 +13,7 @@ import dacite
 import ida_bytes
 
 from ruamel.yaml import YAML
+
 yaml = YAML()
 yaml.allow_duplicate_keys = True
 yaml.width = 4096
@@ -25,10 +26,12 @@ import ida_segment
 LOGGING = logging.DEBUG
 SENTINEL = 0xDEAD_BEEF
 
+
 @yaml.register_class
 @dataclass
 class GeneratedClass:
     func_sigs: Dict[str, str] = field(default_factory=dict)
+
 
 @yaml.register_class
 @dataclass
@@ -49,6 +52,7 @@ class GeneratedData:
             self.classes[cls] = GeneratedClass()
         self.classes[cls].func_sigs[function] = sig
 
+
 @dataclass
 class ClassVtbl:
     ea: int
@@ -62,6 +66,7 @@ class GameClass:
     vtbls: List[ClassVtbl] = field(default_factory=list)
     funcs: Dict[int, str] = field(default_factory=dict)
     vfuncs: Dict[int, str] = field(default_factory=dict)
+
 
 @dataclass
 class ClientStructsData:
@@ -95,7 +100,7 @@ class Log:
         :param message: The message
         :return: None
         """
-        print(f'[{level}] {message}')
+        print(f"[{level}] {message}")
 
     @staticmethod
     def debug(message: str) -> None:
@@ -105,7 +110,7 @@ class Log:
         :return: None
         """
         if LOGGING >= logging.DEBUG:
-            Log._log('DBG', message)
+            Log._log("DBG", message)
 
     @staticmethod
     def info(message: str) -> None:
@@ -115,7 +120,7 @@ class Log:
         :return: None
         """
         if LOGGING >= logging.INFO:
-            Log._log('INF', message)
+            Log._log("INF", message)
 
     @staticmethod
     def warn(message: str) -> None:
@@ -125,7 +130,7 @@ class Log:
         :return: None
         """
         if LOGGING >= logging.WARN:
-            Log._log('WRN', message)
+            Log._log("WRN", message)
 
     @staticmethod
     def error(message: str) -> None:
@@ -135,7 +140,7 @@ class Log:
         :return: None
         """
         if LOGGING >= logging.ERROR:
-            Log._log('ERR', message)
+            Log._log("ERR", message)
 
 
 class SigGen:
@@ -144,6 +149,7 @@ class SigGen:
     that resides within a function. Maximum sig length is decided by the smaller of
     the func length or the INSN_TO_SIG variable.
     """
+
     _INSN_TO_SIG = 30  # Max number of instructions to sig
 
     _base_addr: int  # base address
@@ -179,9 +185,9 @@ class SigGen:
         :return: A signature
         """
         if count <= 0:
-            raise IndexError('Requested sig size is less than or equal to 0')
+            raise IndexError("Requested sig size is less than or equal to 0")
         if count > self._max_index:
-            raise IndexError('Requested sig size is greater than the max allowable')
+            raise IndexError("Requested sig size is greater than the max allowable")
 
         chunks = []
         # Check the cache and fill
@@ -192,7 +198,7 @@ class SigGen:
                 chunk = self._sig_cache[i] = self._sig_instruction(addr)
             chunks.append(chunk)
 
-        return ' '.join(chunks)
+        return " ".join(chunks)
 
     def __iter__(self) -> Iterator[str]:
         for i in range(self.max_count):
@@ -203,7 +209,7 @@ class SigGen:
         return self._max_index
 
     def __str__(self):
-        return f'<SigGen: {self._base_addr:X}>'
+        return f"<SigGen: {self._base_addr:X}>"
 
     def __repr__(self):
         return self.__str__()
@@ -243,9 +249,9 @@ class SigGen:
         sig = self._sig_bytes(insn.ea, op_size)
 
         if self._match_operands(insn.ea):
-            sig += ' ' + self._sig_bytes(insn.ea + op_size, operand_size)
+            sig += " " + self._sig_bytes(insn.ea + op_size, operand_size)
         else:
-            sig += ' ' + self._sig_wildcards(operand_size)
+            sig += " " + self._sig_wildcards(operand_size)
 
         return sig
 
@@ -255,7 +261,7 @@ class SigGen:
         :param count: Number of wildcard entries to generate
         :return: A signature
         """
-        return ' '.join('??' for _ in range(count))
+        return " ".join("??" for _ in range(count))
 
     def _sig_bytes(self, addr: int, count: int) -> str:
         """
@@ -264,7 +270,7 @@ class SigGen:
         :param count: Number of bytes to get
         :return: A signature
         """
-        return ' '.join(f'{b:02X}' for b in idaapi.get_bytes(addr, count))
+        return " ".join(f"{b:02X}" for b in idaapi.get_bytes(addr, count))
 
     def _get_current_opcode_size(self, insn: idaapi.insn_t) -> int:
         """
@@ -306,62 +312,66 @@ class FfxivSigmaker:
 
     def __init__(self):
         data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.yml")
-        with Path(data_path).open('r') as fd:
+        with Path(data_path).open("r") as fd:
             data_dict = yaml.load(fd)
             self.DATASTORE = dacite.from_dict(ClientStructsData, data_dict)
 
         self._rebase_datastore()
 
         generated_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "generated_data.yml")
-        with Path(generated_data_path).open('r') as fd:
+        with Path(generated_data_path).open("r") as fd:
             data_dict = yaml.load(fd)
-            self.GENERATED_DATASTORE = data_dict #dacite.from_dict(GeneratedData, data_dict)
+            self.GENERATED_DATASTORE = data_dict  # dacite.from_dict(GeneratedData, data_dict)
 
     def run(self) -> None:
         """
         Run the sigmaker
         :return: None
         """
-        Log.debug('generating global sigs')
+        Log.debug("generating global sigs")
         total_globals = len(self.DATASTORE.globals)
-        for (i, (global_ea, global_name)) in enumerate(self.DATASTORE.globals.items()):
-            status = f'{i}/{total_globals} ({i / total_globals:0.2%})'
+        for i, (global_ea, global_name) in enumerate(self.DATASTORE.globals.items()):
+            status = f"{i}/{total_globals} ({i / total_globals:0.2%})"
 
             if global_name in self.GENERATED_DATASTORE.global_sigs:
                 existing_sig = self.GENERATED_DATASTORE.global_sigs[global_name]
                 if existing_sig != "None":
-                    Log.debug(f'{status} // {global_name} // {global_ea:X} // has existing sig: {existing_sig}')
+                    Log.debug(f"{status} // {global_name} // {global_ea:X} // has existing sig: {existing_sig}")
                 else:
-                    Log.debug(f'{status} // {global_name} // {global_ea:X} // failed sig generation on previous run')
+                    Log.debug(f"{status} // {global_name} // {global_ea:X} // failed sig generation on previous run")
                 continue
 
             sig = self._sig_address(int(global_ea), False)
-            Log.debug(f'{status} // {global_name} // {global_ea:X} // {sig}')
+            Log.debug(f"{status} // {global_name} // {global_ea:X} // {sig}")
             if sig:
                 self.GENERATED_DATASTORE.global_sigs[global_name] = sig
             else:
                 self.GENERATED_DATASTORE.global_sigs[global_name] = "None"
 
-        Log.debug('generating class sigs')
+        Log.debug("generating class sigs")
         class_data: GameClass
         total = len(self.DATASTORE.classes)
-        for (i, (class_name, class_data)) in enumerate(self.DATASTORE.classes.items()):
+        for i, (class_name, class_data) in enumerate(self.DATASTORE.classes.items()):
             # skip stubs
             if not class_data:
                 continue
 
-            status = f'{i}/{total} ({i / total:0.2%})'
+            status = f"{i}/{total} ({i / total:0.2%})"
 
-            for (func_ea, func_name) in class_data.funcs.items():
+            for func_ea, func_name in class_data.funcs.items():
                 existing_sig = self.GENERATED_DATASTORE.get_function_signature(class_name, func_name)
                 if existing_sig is not None:
                     if existing_sig == "None":
-                        Log.debug(f'{status} // {class_name}::{func_name} // {func_ea:X} // failed sig generation on previous run')
+                        Log.debug(
+                            f"{status} // {class_name}::{func_name} // {func_ea:X} // failed sig generation on previous run"
+                        )
                     else:
-                        Log.debug(f'{status} // {class_name}::{func_name} // {func_ea:X} // has existing sig: {existing_sig}')
+                        Log.debug(
+                            f"{status} // {class_name}::{func_name} // {func_ea:X} // has existing sig: {existing_sig}"
+                        )
                     continue
                 sig = self._sig_address(int(func_ea), True)
-                Log.debug(f'{status} // {class_name}::{func_name} // {func_ea:X} // {sig}')
+                Log.debug(f"{status} // {class_name}::{func_name} // {func_ea:X} // {sig}")
                 if sig:
                     self.GENERATED_DATASTORE.set_function_signature(class_name, func_name, sig)
                 else:
@@ -381,7 +391,7 @@ class FfxivSigmaker:
             #     if sig:
             #         class_data.g_instance_sig = sig
 
-        Log.debug(f'{total}/{total} (100.00%)')
+        Log.debug(f"{total}/{total} (100.00%)")
 
     def export(self) -> None:
         """
@@ -390,7 +400,7 @@ class FfxivSigmaker:
         """
         data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "generated_data.yml")
 
-        with Path(data_path).open('w') as fd:
+        with Path(data_path).open("w") as fd:
             yaml.dump(self.GENERATED_DATASTORE, fd)
 
     # region Rebasing
@@ -413,7 +423,7 @@ class FfxivSigmaker:
         self.__rebase_dict(self.DATASTORE.functions, rebase_offset)
 
         class_data: GameClass
-        for (class_name, class_data) in self.DATASTORE.classes.items():
+        for class_name, class_data in self.DATASTORE.classes.items():
             if not class_data:
                 continue
 
@@ -435,7 +445,7 @@ class FfxivSigmaker:
         :param rebase_offset: Rebase offset
         :return: None
         """
-        for (addr, name) in list(mapping.items()):
+        for addr, name in list(mapping.items()):
             mapping[addr + rebase_offset] = mapping.pop(addr)
 
     # endregion
@@ -464,14 +474,14 @@ class FfxivSigmaker:
         xref_addrs = [xref.frm for xref in idautils.XrefsTo(addr)]
 
         if is_func and not ida_funcs.get_func(addr):
-            Log.warn(f'Address at {addr:X} is identified as a func, but is not in IDA, attempting to make a subroutine')
+            Log.warn(f"Address at {addr:X} is identified as a func, but is not in IDA, attempting to make a subroutine")
             ida_funcs.add_func(addr)
 
         # This should prune xrefs in places like .pdata by only keeping xrefs in a function
         xref_addrs = list(filter(ida_funcs.get_func_name, xref_addrs))
 
         # Grab the first N xrefs
-        xref_addrs = xref_addrs[:self.XREFS_TO_SEARCH]
+        xref_addrs = xref_addrs[: self.XREFS_TO_SEARCH]
 
         if is_func:
             # Try to sig the func itself as well
@@ -520,12 +530,12 @@ class FfxivSigmaker:
         """
 
         # Expects a byte array
-        fmt_sig = [int(s, 16).to_bytes(1, 'little') if s != '??' else b'\0' for s in sig.split(' ')]
-        fmt_sig = b''.join(fmt_sig)
+        fmt_sig = [int(s, 16).to_bytes(1, "little") if s != "??" else b"\0" for s in sig.split(" ")]
+        fmt_sig = b"".join(fmt_sig)
 
         # Another byte array, 0 = "??" wildcard
-        sig_mask = [int(b != '??').to_bytes(1, 'little') for b in sig.split(' ')]
-        sig_mask = b''.join(sig_mask)
+        sig_mask = [int(b != "??").to_bytes(1, "little") for b in sig.split(" ")]
+        sig_mask = b"".join(sig_mask)
 
         result_count = 0
         sig_addr = self.TEXT_SEGMENT.start_ea  # noqa
@@ -533,9 +543,11 @@ class FfxivSigmaker:
             sig_addr = idaapi.bin_search(
                 sig_addr,
                 self.TEXT_SEGMENT.end_ea,  # noqa
-                fmt_sig, sig_mask,
+                fmt_sig,
+                sig_mask,
                 ida_bytes.BIN_SEARCH_FORWARD,
-                ida_bytes.BIN_SEARCH_NOCASE)
+                ida_bytes.BIN_SEARCH_NOCASE,
+            )
 
             # No more results
             if sig_addr == idaapi.BADADDR:

@@ -86,23 +86,16 @@ if api is None:
 
                         uniquifier = 0
                         while True:
-                            uniqueName = fnName + (
-                                f"_{uniquifier}" if uniquifier > 0 else ""
-                            )
+                            uniqueName = fnName + (f"_{uniquifier}" if uniquifier > 0 else "")
 
                             # check if this name is unique now
-                            if (
-                                idc.get_name_ea_simple(uniqueName) == idc.BADADDR
-                                and uniquifier > 0
-                            ):
+                            if idc.get_name_ea_simple(uniqueName) == idc.BADADDR and uniquifier > 0:
                                 fnName = uniqueName
                                 break
 
                             uniquifier += 1
 
-                        self.set_func_name(
-                            ea, fnName, "Sheet: {0} ({1})".format(sheetName, sheetIdx)
-                        )
+                        self.set_func_name(ea, fnName, "Sheet: {0} ({1})".format(sheetName, sheetIdx))
 
                         if suffix == "SheetIndex":
                             continue
@@ -117,21 +110,15 @@ if api is None:
                             ida_hexrays.decompile(ea)
                             ida_typeinf.guess_tinfo(tif, ea)
                             if not tif.get_func_details(funcdata):
-                                print(
-                                    "Failed to get func details for %s @ %X"
-                                    % (fnName, ea)
-                                )
+                                print("Failed to get func details for %s @ %X" % (fnName, ea))
                                 continue
-
 
                         if suffix == "RowAndSubRowId":
                             tif = self.get_tinfo_from_type(
                                 f"{exd_struct_map[sheetIdx]} *__fastcall func(unsigned int rowId, unsigned int subRowId);"
                             )
                         elif suffix == "RowCount":
-                            tif = self.get_tinfo_from_type(
-                                f"{exd_struct_map[sheetIdx]} *__fastcall func();"
-                            )
+                            tif = self.get_tinfo_from_type(f"{exd_struct_map[sheetIdx]} *__fastcall func();")
                         else:
                             tif = self.get_tinfo_from_type(
                                 f"{exd_struct_map[sheetIdx]} *__fastcall func(unsigned int rowIdOrIndex);"
@@ -139,7 +126,7 @@ if api is None:
 
                         ida_typeinf.apply_tinfo(ea, tif, ida_typeinf.TINFO_DEFINITE)
 
-            def create_enum_struct(self, name, values, width = 0):
+            def create_enum_struct(self, name, values, width=0):
                 # type: (str, dict[int, str], int) -> None
                 if len(name.split("::")) > 3:
                     sheet_name = name.split("::")[-2]
@@ -175,12 +162,7 @@ if api is None:
                     self.remove_struct_members(struct_id)
                 struct_type = self.get_struct(struct_id)
                 for [index, [type, name]] in fields.items():
-                    if (
-                        self.get_idc_type_from_ida_type(
-                            self.clean_struct_name(type)
-                        )
-                        == self.get_struct_flag()
-                    ):
+                    if self.get_idc_type_from_ida_type(self.clean_struct_name(type)) == self.get_struct_flag():
                         type = self.clean_struct_name(type)
                         self.create_struct_member(
                             struct_type,
@@ -190,10 +172,7 @@ if api is None:
                             self.get_struct_opinfo_from_type(type),
                             self.get_size_from_ida_type(type),
                         )
-                    elif (
-                        self.get_idc_type_from_ida_type(type)
-                        == self.get_enum_flag()
-                    ):
+                    elif self.get_idc_type_from_ida_type(type) == self.get_enum_flag():
                         self.create_struct_member(
                             struct_type,
                             name,
@@ -212,9 +191,7 @@ if api is None:
                             self.get_size_from_ida_type(type),
                         )
                     meminfo = self.get_struct_member_by_name(struct_type, name)
-                    self.set_struct_member_info(
-                        struct_type, meminfo, 0, self.get_tinfo_from_type(type), 0
-                    )
+                    self.set_struct_member_info(struct_type, meminfo, 0, self.get_tinfo_from_type(type), 0)
                 idaapi.end_type_updating(idaapi.UTP_STRUCT)
 
             def set_func_name(self, ea, name, cmt):
@@ -250,8 +227,9 @@ if api is None:
     try:
         import ghidra
         import re
+
         try:
-            from ghidra.ghidra_builtins import * # ghidra-stubs
+            from ghidra.ghidra_builtins import *  # ghidra-stubs
         except ImportError:
             pass
 
@@ -266,7 +244,7 @@ if api is None:
     else:
         # noinspection PyUnresolvedReferences
         class GhidraApi(BaseApi):
-            def create_enum_struct(self, name, values, width = 0):
+            def create_enum_struct(self, name, values, width=0):
                 # type: (str, dict[int, str], int) -> None
                 path = self.get_datatype_path(name)
                 enum_dt = EnumDataType(path.getCategoryPath(), path.getDataTypeName(), width or 8)
@@ -359,7 +337,9 @@ if api is None:
                         arg_vars.clear()
 
                     update_type = Function.FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS
-                    getFunctionAt(ea).updateFunction("__fastcall", return_var, arg_vars, update_type, False, SourceType.USER_DEFINED)
+                    getFunctionAt(ea).updateFunction(
+                        "__fastcall", return_var, arg_vars, update_type, False, SourceType.USER_DEFINED
+                    )
 
             def get_sheet_index(self, ea):
                 # type: (Address) -> int
@@ -396,14 +376,22 @@ if api is None:
 
             def get_datatype_path(self, name):
                 # type: (str) -> DataTypePath
-                if name == "__int8": name = "char"
-                if name == "__int16": name = "short"
-                if name == "__int32": name = "int"
-                if name == "__int64": name = "longlong"
-                if name == "unsigned __int8" or name == "unsigned char": name = "byte"
-                if name == "unsigned __int16" or name == "unsigned short": name = "ushort"
-                if name == "unsigned __int32" or name == "unsigned int": name = "uint"
-                if name == "unsigned __int64" or name == "unsigned long long": name = "ulonglong"
+                if name == "__int8":
+                    name = "char"
+                if name == "__int16":
+                    name = "short"
+                if name == "__int32":
+                    name = "int"
+                if name == "__int64":
+                    name = "longlong"
+                if name == "unsigned __int8" or name == "unsigned char":
+                    name = "byte"
+                if name == "unsigned __int16" or name == "unsigned short":
+                    name = "ushort"
+                if name == "unsigned __int32" or name == "unsigned int":
+                    name = "uint"
+                if name == "unsigned __int64" or name == "unsigned long long":
+                    name = "ulonglong"
                 path_parts = SymbolPathParser.parse(name)
                 return DataTypePath("/" + "/".join(path_parts[:-1]), path_parts[-1])
 
@@ -427,19 +415,46 @@ game_data = GameData(join(config["GamePath"], "game"))
 
 # nb: "pattern": ("func suffix", ("instance pointer sig" or None, offset from sig start or func start))
 exd_func_patterns: dict[str, tuple[str, tuple[str | None, int]]] = {
-    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("Row", ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11)),
-    "48 83 EC 28 85 C9 74 20 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("Row", ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11)),
+    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "Row",
+        ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11),
+    ),
+    "48 83 EC 28 85 C9 74 20 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "Row",
+        ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11),
+    ),
     "48 83 EC 28 48 8B 05 ? ? ? ? BA ? ? ? ? 44 0F B6 C1 48 8B 88 ? ? ? ? E8": ("Row", ("48 8B 05 ? ? ? ? BA", 8)),
     "48 83 EC 28 48 8B 05 ? ? ? ? BA ? ? ? ? 44 0F B7 C1 48 8B 88 ? ? ? ? E8": ("Row", ("48 8B 05 ? ? ? ? BA", 8)),
-    "48 83 EC 28 48 8B 05 ? ? ? ? BA ? ? ? ? 44 0F B7 81 ? ? ? ? 48 8B 88 ? ? ? ? E8": ("Row", ("48 8B 05 ? ? ? ? BA", 8)),
-    "40 53 48 83 EC 20 48 8B 05 ? ? ? ? 44 8B C1 8B DA BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("Row", ("44 8B C1 8B DA BA", 6)),
-    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8B C1 84 D2 BA ? ? ? ? 48 8B 88 ? ? ? ? 74 07 E8": ("Row", ("44 8B C1 84 D2 BA", 6)),
-    "48 83 EC 38 48 8B 05 ? ? ? ? 44 8B CA 44 8B C1 48 C7 44 24 ? ? ? ? ? BA ? ? ? ? 48 C7 44 24 ? ? ? ? ? 48 8B 88 ? ? ? ? E8": ("RowAndSubRowId", ("C1 48 C7 44 24 ? ? ? ? ? BA", 11)),
-    "48 83 EC 38 48 8B 05 ? ? ? ? 44 8B C1 44 0F ? CA BA ? ? ? ? 48 C7 44 24 28 ? ? ? ? 48 C7 44 24 20 ? ? ? ? 48 8B 88 ? ? ? ? E8": ("RowAndSubRowId", ("44 8B C1 44 0F ? CA BA", 8)),
-    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8D 81 ? ? ? ? BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("RowIndex", ("05 ? ? ? ? 44 8D 81 ? ? ? ? BA", 13)),
-    "48 83 EC 28 8D 41 ? 3D ? ? ? ? 77 20 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("RowIndex", ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11)),
+    "48 83 EC 28 48 8B 05 ? ? ? ? BA ? ? ? ? 44 0F B7 81 ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "Row",
+        ("48 8B 05 ? ? ? ? BA", 8),
+    ),
+    "40 53 48 83 EC 20 48 8B 05 ? ? ? ? 44 8B C1 8B DA BA ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "Row",
+        ("44 8B C1 8B DA BA", 6),
+    ),
+    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8B C1 84 D2 BA ? ? ? ? 48 8B 88 ? ? ? ? 74 07 E8": (
+        "Row",
+        ("44 8B C1 84 D2 BA", 6),
+    ),
+    "48 83 EC 38 48 8B 05 ? ? ? ? 44 8B CA 44 8B C1 48 C7 44 24 ? ? ? ? ? BA ? ? ? ? 48 C7 44 24 ? ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "RowAndSubRowId",
+        ("C1 48 C7 44 24 ? ? ? ? ? BA", 11),
+    ),
+    "48 83 EC 38 48 8B 05 ? ? ? ? 44 8B C1 44 0F ? CA BA ? ? ? ? 48 C7 44 24 28 ? ? ? ? 48 C7 44 24 20 ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "RowAndSubRowId",
+        ("44 8B C1 44 0F ? CA BA", 8),
+    ),
+    "48 83 EC 28 48 8B 05 ? ? ? ? 44 8D 81 ? ? ? ? BA ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "RowIndex",
+        ("05 ? ? ? ? 44 8D 81 ? ? ? ? BA", 13),
+    ),
+    "48 83 EC 28 8D 41 ? 3D ? ? ? ? 77 20 48 8B 05 ? ? ? ? 44 8B C1 BA ? ? ? ? 48 8B 88 ? ? ? ? E8": (
+        "RowIndex",
+        ("48 8B 05 ? ? ? ? 44 8B C1 BA", 11),
+    ),
     "48 83 EC 28 48 8B 05 ? ? ? ? BA ? ? ? ? 48 8B 88 ? ? ? ? E8": ("SheetIndex", ("48 8B 05 ? ? ? ? BA", 8)),
-    "48 8B 05 ? ? ? ? BA ? ? ? ? 48 8B 88 ? ? ? ? E9 ? ? ? ?": ("RowCount", (None, 8))
+    "48 8B 05 ? ? ? ? BA ? ? ? ? 48 8B 88 ? ? ? ? E9 ? ? ? ?": ("RowCount", (None, 8)),
 }
 
 exd_comment_patterns: dict[str, int] = {
@@ -450,7 +465,7 @@ exd_comment_patterns: dict[str, int] = {
     "48 8B 05 ? ? ? ? 44 8B CA 44 8B C1 48 C7 44 24 ? ? ? ? ? BA": 23,
     "48 8B 05 ? ? ? ? 44 8B C1 84 D2 BA": 13,
     "48 8B 05 ? ? ? ? 44 8B C1 44 0F ? CA BA": 15,
-    "48 8B 05 ? ? ? ? 44 8D 81 ? ? ? ? BA": 15
+    "48 8B 05 ? ? ? ? 44 8D 81 ? ? ? ? BA": 15,
 }
 
 exd_map = ExcelListFile(game_data.get_file(ParsedFileName("exd/root.exl"))).dict
@@ -462,14 +477,13 @@ api.create_enum_struct("Component::Exd::SheetsEnum", exd_map, 4)
 for key in exd_map:
     print(f"Parsing schema for {exd_map[key]}.")
     exd_headers[key] = ExcelHeaderFile(
-        game_data.get_file(ParsedFileName("exd/" + exd_map[key] + ".exh")),
-        exd_map[key]
+        game_data.get_file(ParsedFileName("exd/" + exd_map[key] + ".exh")), exd_map[key]
     ).map_names(game_data.get_exd_schema(exd_map[key]))
 
 for key in exd_headers:
     [exd_header, exd_header_enums, exd_header_count] = exd_headers[key]
     struct_name = f"Component::Exd::Sheets::{exd_map[key]}"
-    print(f'Creating struct {struct_name}.')
+    print(f"Creating struct {struct_name}.")
     exd_struct_map[key] = struct_name
     for enum_key in exd_header_enums:
         api.create_enum_struct(f"{struct_name}::{enum_key}", exd_header_enums[enum_key], 1)

@@ -32,8 +32,11 @@ dataFileName = os.path.join(dataDir, "data.yml")
 
 ida = IdaInterface()
 
+
 def get_structs() -> DefinedStructExport:
-    dic: dict[str, dict[str, list[dict[str, str | int | list[dict[str, str | int]]]]]] = load(open(structFileName), Loader=Loader)
+    dic: dict[str, dict[str, list[dict[str, str | int | list[dict[str, str | int]]]]]] = load(
+        open(structFileName), Loader=Loader
+    )
     enums = []
     structs = []
     for enum in dic["enums"]:
@@ -68,9 +71,7 @@ def get_structs() -> DefinedStructExport:
             elif "return_type" in field:
                 parameters = []
                 for param in field["parameters"]:
-                    parameters.append(
-                        DefinedStructFuncParam(param["name"], param["type"])
-                    )
+                    parameters.append(DefinedStructFuncParam(param["name"], param["type"]))
                 fields.append(
                     DefinedStructFuncField(
                         field["name"],
@@ -82,19 +83,12 @@ def get_structs() -> DefinedStructExport:
                     )
                 )
             else:
-                fields.append(
-                    DefinedStructField(
-                        field["name"], field["type"], field["offset"], base
-                    )
-                )
+                fields.append(DefinedStructField(field["name"], field["type"], field["offset"], base))
         if "virtual_functions" in struct:
             virtual_functions = []
             for vfunc in struct["virtual_functions"]:
                 parameters = (
-                    [
-                        DefinedStructFuncParam(param["name"], param["type"])
-                        for param in vfunc["parameters"]
-                    ]
+                    [DefinedStructFuncParam(param["name"], param["type"]) for param in vfunc["parameters"]]
                     if "parameters" in vfunc
                     else None
                 )
@@ -123,9 +117,7 @@ def get_structs() -> DefinedStructExport:
             for smemfunc in struct["static_member_functions"]:
                 parameters = []
                 for param in smemfunc["parameters"]:
-                    parameters.append(
-                        DefinedStructFuncParam(param["name"], param["type"])
-                    )
+                    parameters.append(DefinedStructFuncParam(param["name"], param["type"]))
                 static_member_functions.append(
                     DefinedStructMemFunc(
                         smemfunc["signature"],
@@ -170,7 +162,9 @@ def get_structs() -> DefinedStructExport:
 
 
 def get_data():
-    dic: dict[str, str | dict[int, str] | dict[str, dict[str, list[dict[str, int | bool | str]] | dict[int, str]]]] = load(open(dataFileName), Loader=Loader)
+    dic: dict[str, str | dict[int, str] | dict[str, dict[str, list[dict[str, int | bool | str]] | dict[int, str]]]] = (
+        load(open(dataFileName), Loader=Loader)
+    )
     classes = []
     for className, classInstance in dic["classes"].items():
         if classInstance == None:
@@ -207,5 +201,6 @@ def load_data():
                 continue
             if ea == instance.ea and static_member.is_pointer != instance.pointer:
                 print(f"Found pointer discrepancy at {ea:X} on {data.name}")
+
 
 load_data()
