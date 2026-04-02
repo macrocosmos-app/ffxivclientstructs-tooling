@@ -16,8 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-[project.dependencies]
-PyYAML = ">=6.0,<7"
+dependencies = ["PyYAML>=6.0.1,<7"]
 
 [project.optional-dependencies]
 idarename = [
@@ -26,11 +25,22 @@ idarename = [
 sigmaker = [
     "dacite>=1.6.0,<2",
 ]
-all = ["anytree>=2.8.0,<3", "dacite>=1.6.0,<3"]
+all = ["anytree>=2.8.0,<3", "dacite>=1.6.0,<2"]
 
 [dependency-groups]
-dev = []
+dev = [
+    "ruff>=0.15.8",
+]
 
-[build-system]
-requires = ["uv_build>=0.9.18,<0.10.0"]
-build-backend = "uv_build"
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E741", "B006"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
