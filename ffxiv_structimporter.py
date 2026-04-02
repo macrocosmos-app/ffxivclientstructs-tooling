@@ -116,9 +116,7 @@ class BaseApi:
 
     def get_yaml(self):
         # type: () -> DefinedStructExport
-        dic = load(
-            open(self.get_file_path), Loader=Loader
-        )  # type: dict[str, dict[str, list[dict[str, str | int | list[dict[str, str | int]]]]]]
+        dic = load(open(self.get_file_path), Loader=Loader)  # type: dict[str, dict[str, list[dict[str, str | int | list[dict[str, str | int]]]]]]
         enums = []
         structs = []
         for enum in dic["enums"]:
@@ -153,9 +151,7 @@ class BaseApi:
                 elif "return_type" in field:
                     parameters = []
                     for param in field["parameters"]:
-                        parameters.append(
-                            DefinedStructFuncParam(param["name"], param["type"])
-                        )
+                        parameters.append(DefinedStructFuncParam(param["name"], param["type"]))
                     fields.append(
                         DefinedStructFuncField(
                             field["name"],
@@ -167,19 +163,12 @@ class BaseApi:
                         )
                     )
                 else:
-                    fields.append(
-                        DefinedStructField(
-                            field["name"], field["type"], field["offset"], base
-                        )
-                    )
+                    fields.append(DefinedStructField(field["name"], field["type"], field["offset"], base))
             if "virtual_functions" in struct:
                 virtual_functions = []
                 for vfunc in struct["virtual_functions"]:
                     parameters = (
-                        [
-                            DefinedStructFuncParam(param["name"], param["type"])
-                            for param in vfunc["parameters"]
-                        ]
+                        [DefinedStructFuncParam(param["name"], param["type"]) for param in vfunc["parameters"]]
                         if "parameters" in vfunc
                         else None
                     )
@@ -208,9 +197,7 @@ class BaseApi:
                 for smemfunc in struct["static_member_functions"]:
                     parameters = []
                     for param in smemfunc["parameters"]:
-                        parameters.append(
-                            DefinedStructFuncParam(param["name"], param["type"])
-                        )
+                        parameters.append(DefinedStructFuncParam(param["name"], param["type"]))
                     static_member_functions.append(
                         DefinedStructMemFunc(
                             smemfunc["signature"],
@@ -282,9 +269,7 @@ if api is None:
 
             @property
             def get_file_path(self):
-                return os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), "ffxiv_structs.yml"
-                )
+                return os.path.join(os.path.dirname(os.path.realpath(__file__)), "ffxiv_structs.yml")
 
             def can_run(self):
                 return self.enum_exists("Component::Exd::SheetsEnum")
@@ -305,9 +290,7 @@ if api is None:
                         self.add_enum_member(e, "{0}.{1}".format(enum.name, "tmp"), self.get_enum_default_mask(e))
                     self.set_enum_as_bf(e)
                 for value in enum.values:
-                    self.add_enum_member(
-                        e, "{0}.{1}".format(enum.name, value), enum.values[value]
-                    )
+                    self.add_enum_member(e, "{0}.{1}".format(enum.name, value), enum.values[value])
                 if enum.flags and idaapi.IDA_SDK_VERSION < 900:
                     self.remove_enum_member(e, "tmp", enum.name)
 
@@ -342,14 +325,10 @@ if api is None:
                     flag = self.get_idc_type_from_size(prev_size)
                     size = self.get_size_from_idc_type(flag)
                     if size > offset - prev_size:
-                        flag = self.get_idc_type_from_size(
-                            offset - prev_size, prev_size
-                        )
+                        flag = self.get_idc_type_from_size(offset - prev_size, prev_size)
                         size = self.get_size_from_idc_type(flag)
 
-                    self.create_struct_member(
-                        s, "field_{0:X}".format(prev_size), prev_size, flag, None, size
-                    )
+                    self.create_struct_member(s, "field_{0:X}".format(prev_size), prev_size, flag, None, size)
                 else:
                     self.create_struct_member(
                         s,
@@ -388,17 +367,11 @@ if api is None:
                 fullname = self.clean_struct_name(struct.type)
                 s = self.get_struct(self.get_struct_id(fullname))
 
-                if struct.virtual_functions != None and (
-                    struct.fields == [] or struct.fields[0].offset > 0
-                ):
-                    self.create_struct_member(
-                        s, "__vftable", 0, ida_bytes.qword_flag(), None, 8
-                    )
+                if struct.virtual_functions != None and (struct.fields == [] or struct.fields[0].offset > 0):
+                    self.create_struct_member(s, "__vftable", 0, ida_bytes.qword_flag(), None, 8)
                     type = fullname + "_vtbl*" if struct.virtual_functions else "void**"
                     meminfo = self.get_struct_member_by_name(s, "__vftable")
-                    self.set_struct_member_info(
-                        s, meminfo, 0, self.get_tinfo_from_type(type), 0
-                    )
+                    self.set_struct_member_info(s, meminfo, 0, self.get_tinfo_from_type(type), 0)
 
                 contiguous_fields = True
                 for field in struct.fields:
@@ -408,15 +381,13 @@ if api is None:
                     if offset > prev_size:
                         contiguous_fields = False
                         for pad_offset, pad_size, pad_flag in self.calculate_padding_members(prev_size, offset):
-                            self.create_struct_member(s, 'field_{0:X}'.format(pad_offset), pad_offset, pad_flag, None, pad_size)
+                            self.create_struct_member(
+                                s, "field_{0:X}".format(pad_offset), pad_offset, pad_flag, None, pad_size
+                            )
                         prev_size = self.get_struct_size(s)
 
                     field_is_base = field.base and contiguous_fields
-                    field_name = (
-                        field.name
-                        if not field_is_base
-                        else "baseclass_{0:X}".format(offset)
-                    )
+                    field_name = field.name if not field_is_base else "baseclass_{0:X}".format(offset)
                     field_type = self.clean_name(field.type)
                     if field_type == "__fastcall":
                         self.create_struct_member(
@@ -433,12 +404,7 @@ if api is None:
                             field_type = field_type + self.clean_name(param.type) + ""
                             field_type = field_type + param.name + ","
                         field_type = field_type[:-2] + ")"
-                    elif (
-                        self.get_idc_type_from_ida_type(
-                            self.clean_struct_name(field_type)
-                        )
-                        == self.get_struct_flag()
-                    ):
+                    elif self.get_idc_type_from_ida_type(self.clean_struct_name(field_type)) == self.get_struct_flag():
                         field_type = self.clean_struct_name(field_type)
                         self.create_struct_member(
                             s,
@@ -448,10 +414,7 @@ if api is None:
                             self.get_struct_opinfo_from_type(field_type),
                             self.get_size_from_ida_type(field_type),
                         )
-                    elif (
-                        self.get_idc_type_from_ida_type(field_type)
-                        == self.get_enum_flag()
-                    ):
+                    elif self.get_idc_type_from_ida_type(field_type) == self.get_enum_flag():
                         self.create_struct_member(
                             s,
                             field_name,
@@ -491,7 +454,9 @@ if api is None:
                     prev_size = self.get_struct_size(s)
                     if struct.size > prev_size:
                         for pad_offset, pad_size, pad_flag in self.calculate_padding_members(prev_size, struct.size):
-                            self.create_struct_member(s, 'field_{0:X}'.format(pad_offset), pad_offset, pad_flag, None, pad_size)
+                            self.create_struct_member(
+                                s, "field_{0:X}".format(pad_offset), pad_offset, pad_flag, None, pad_size
+                            )
 
             def create_vtable(self, struct):
                 # type: (DefinedStruct) -> None
@@ -522,9 +487,7 @@ if api is None:
                         field_type = field_type + param.name + ","
                     field_type = field_type[:-1] + ")"
 
-                    self.set_struct_member_info(
-                        s, meminfo, 0, self.get_tinfo_from_type(field_type), 0
-                    )
+                    self.set_struct_member_info(s, meminfo, 0, self.get_tinfo_from_type(field_type), 0)
                 if struct.vtable_size:
                     size = int(struct.vtable_size / 8)
                 else:
@@ -540,9 +503,7 @@ if api is None:
                             self.get_size_from_ida_type("__int64"),
                         )
                         meminfo = self.get_struct_member_by_name(s, "vf{0}".format(i))
-                        self.set_struct_member_info(
-                            s, meminfo, 0, self.get_tinfo_from_type("__int64"), 0
-                        )
+                        self.set_struct_member_info(s, meminfo, 0, self.get_tinfo_from_type("__int64"), 0)
 
             def create_union(self, struct):
                 # type: (DefinedStruct) -> None
@@ -550,18 +511,12 @@ if api is None:
 
             def update_member_func(self, member_func, struct):
                 # type: (DefinedStructMemFunc, DefinedStruct) -> None
-                func_name = "{0}.{1}".format(
-                    self.clean_name(struct.type), member_func.name
-                )
+                func_name = "{0}.{1}".format(self.clean_name(struct.type), member_func.name)
                 ea = self.get_func_ea_by_name(func_name)
                 if ea == idc.BADADDR:
                     ea = self.get_func_ea_by_sig(member_func.signature)
                 if ea == idc.BADADDR:
-                    print(
-                        "Error: {0} not found bad sig? {1}".format(
-                            func_name, member_func.signature
-                        )
-                    )
+                    print("Error: {0} not found bad sig? {1}".format(func_name, member_func.signature))
                     return
                 if ida_funcs.get_func_name(ea) == "sub_{0:X}".format(ea):
                     idc.set_name(ea, func_name)
@@ -582,9 +537,7 @@ if api is None:
 
             def update_virt_func(self, virt_func, struct):
                 # type: (DefinedStructVFunc, DefinedStruct) -> None
-                func_name = "{0}.{1}".format(
-                    self.clean_name(struct.type), virt_func.name
-                )
+                func_name = "{0}.{1}".format(self.clean_name(struct.type), virt_func.name)
                 ea = self.get_func_ea_by_name(func_name)
                 if ea == idc.BADADDR:
                     print("Error: {0} not found using base?".format(func_name))
@@ -606,15 +559,9 @@ if api is None:
 
             def update_static_member(self, static_member, struct):
                 # type: (DefinedStructStaticMember, DefinedStruct) -> None
-                ea = self.search_binary(
-                    0, static_member.signature, ida_search.SEARCH_DOWN
-                )
+                ea = self.search_binary(0, static_member.signature, ida_search.SEARCH_DOWN)
                 if ea == idc.BADADDR:
-                    print(
-                        "Error: {0} not found something is wrong".format(
-                            static_member.signature
-                        )
-                    )
+                    print("Error: {0} not found something is wrong".format(static_member.signature))
                     return
                 for follows in static_member.relative_offsets:
                     ea = ea + follows
@@ -635,23 +582,17 @@ if api is None:
                         "g_{0}_{1}".format(self.clean_name(struct.type), "PtrInstance"),
                     )
                 else:
-                    ida_name.set_name(
-                        ea, "g_{0}_{1}".format(self.clean_name(struct.type), "Instance")
-                    )
+                    ida_name.set_name(ea, "g_{0}_{1}".format(self.clean_name(struct.type), "Instance"))
 
             def should_update_member_func(self):
                 return (
-                    ida_kernwin.ask_yn(
-                        ida_kernwin.ASKBTN_YES, "Update member function types?"
-                    )
+                    ida_kernwin.ask_yn(ida_kernwin.ASKBTN_YES, "Update member function types?")
                     == ida_kernwin.ASKBTN_YES
                 )
 
             def should_update_virt_func(self):
                 return (
-                    ida_kernwin.ask_yn(
-                        ida_kernwin.ASKBTN_YES, "Update virtual function types?"
-                    )
+                    ida_kernwin.ask_yn(ida_kernwin.ASKBTN_YES, "Update virtual function types?")
                     == ida_kernwin.ASKBTN_YES
                 )
 
@@ -704,9 +645,7 @@ if api is None:
                 if "<" not in name:
                     return name
                 for match in re.finditer(r"unsigned _*[\w*]{3,}|[:\w*]{3,}", name):
-                    tn = self.get_ghidra_type(
-                        SymbolPathParser.parse(match.group(0)).getLast()
-                    )
+                    tn = self.get_ghidra_type(SymbolPathParser.parse(match.group(0)).getLast())
                     name = name.replace(match.group(0), tn)
                 return name
 
@@ -802,9 +741,7 @@ if api is None:
 
             @property
             def get_file_path(self):
-                return os.path.join(
-                    os.path.dirname(str(sourceFile)), "ffxiv_structs.yml"
-                )
+                return os.path.join(os.path.dirname(str(sourceFile)), "ffxiv_structs.yml")
 
             def create_enum_struct(self, enum):
                 # type: (DefinedStructEnum) -> None
@@ -851,11 +788,7 @@ if api is None:
 
                 struct.fields.sort(key=lambda fld: fld.offset)
                 dtsize = dt.getLength() if not dt.isZeroLength() else 0
-                if (
-                    dtsize == 0
-                    and struct.virtual_functions is not None
-                    and not struct.union
-                ):
+                if dtsize == 0 and struct.virtual_functions is not None and not struct.union:
                     dt.growStructure(8)
 
                 for field in struct.fields:
@@ -876,10 +809,7 @@ if api is None:
                         if dtsize <= offset and not struct.size:
                             dt.growStructure(((offset - dtsize) or 0) + ft.getLength())
 
-                        if (
-                            dt.getLength() <= offset
-                            or dt.getLength() < offset + ft.getLength()
-                        ):
+                        if dt.getLength() <= offset or dt.getLength() < offset + ft.getLength():
                             print(
                                 "Field {0} (off=0x{1:X} size=0x{2:X}) not within Struct {3} (size=0x{4:X})".format(
                                     field.name,
@@ -904,30 +834,22 @@ if api is None:
 
                 struct.virtual_functions.sort(key=lambda fn: fn.offset)
                 vt_type = StructureDataType("VTable", 0)
-                vt_type.setCategoryPath(
-                    CategoryPath(dt.getCategoryPath(), [dt.getName()])
-                )
+                vt_type.setCategoryPath(CategoryPath(dt.getCategoryPath(), [dt.getName()]))
                 vt_type = self.create_datatype(vt_type)
                 if struct.fields != [] and struct.fields[0].offset == 0:
                     u_type = UnionDataType("Union")
-                    u_type.setCategoryPath(
-                        CategoryPath(dt.getCategoryPath(), [dt.getName()])
-                    )
+                    u_type.setCategoryPath(CategoryPath(dt.getCategoryPath(), [dt.getName()]))
                     u_type.add(dtm.getPointer(vt_type), -1, "VTable", "")
                     comp = dt.getComponentContaining(0)
                     if comp and not Undefined.isUndefined(comp.getDataType()):
-                        u_type.add(
-                            comp.getDataType(), -1, comp.getFieldName(), "parent class"
-                        )
+                        u_type.add(comp.getDataType(), -1, comp.getFieldName(), "parent class")
                     self.create_datatype(u_type)
 
                 void_ptr = dtm.getPointer(VoidDataType.dataType)
                 for func in struct.virtual_functions:
                     if func.return_type and func.parameters:
                         func_def = self.create_function_def(func)
-                        func_def.setCategoryPath(
-                            CategoryPath(vt_type.getCategoryPath(), [vt_type.getName()])
-                        )
+                        func_def.setCategoryPath(CategoryPath(vt_type.getCategoryPath(), [vt_type.getName()]))
                         vt_type.insertAtOffset(
                             func.offset,
                             dtm.getPointer(func_def),
@@ -962,9 +884,7 @@ if api is None:
                 for offset in range(0, vt_size, 8):
                     dtc = vt_type.getComponentContaining(offset)
                     if not dtc or Undefined.isUndefined(dtc.getDataType()):
-                        vt_type.replaceAtOffset(
-                            offset, void_ptr, -1, "vf{0}".format(offset / 8), None
-                        )
+                        vt_type.replaceAtOffset(offset, void_ptr, -1, "vf{0}".format(offset / 8), None)
 
             def create_union(self, struct):
                 # type: (DefinedStruct) -> None
@@ -992,11 +912,7 @@ if api is None:
                                 vt_type.replaceWith(parent_vt)
                             else:
                                 for c in parent_vt.getComponents():
-                                    if (
-                                        vt_type.getComponentContaining(c.getOffset())
-                                        .getDataType()
-                                        .equals(void_ptr)
-                                    ):
+                                    if vt_type.getComponentContaining(c.getOffset()).getDataType().equals(void_ptr):
                                         vt_type.replaceAtOffset(
                                             c.getOffset(),
                                             c.getDataType(),
@@ -1009,9 +925,7 @@ if api is None:
                             break
 
                 if u_type and struct.fields != [] and struct.fields[0].offset == 0:
-                    dt.replaceAtOffset(
-                        0, u_type, -1, "Union", "vtable and parent union"
-                    )
+                    dt.replaceAtOffset(0, u_type, -1, "Union", "vtable and parent union")
                 elif vt_type:
                     dt.replaceAtOffset(0, dtm.getPointer(vt_type), -1, "VTable", "")
 
@@ -1073,9 +987,7 @@ if api is None:
 
             def should_update_virt_func(self):
                 # type: () -> bool
-                return askYesNo(
-                    "ffxiv_structimporter", "Update virtual function types?"
-                )
+                return askYesNo("ffxiv_structimporter", "Update virtual function types?")
 
         api = GhidraApi()
 
@@ -1160,16 +1072,12 @@ if api is None:
 
             def create_struct(self, struct):
                 # type: (DefinedStruct) -> None
-                struct_type = binaryninja.Type.structure(
-                    type=binaryninja.StructureVariant.ClassStructureType
-                )
+                struct_type = binaryninja.Type.structure(type=binaryninja.StructureVariant.ClassStructureType)
                 bv.define_user_type(struct.type, struct_type)
 
             def create_struct_members(self, struct):
                 # type: (DefinedStruct) -> None
-                struct_type = bv.types[
-                    struct.type
-                ].mutable_copy()  # type: binaryninja.StructureBuilder
+                struct_type = bv.types[struct.type].mutable_copy()  # type: binaryninja.StructureBuilder
 
                 for field in struct.fields:
                     field_type = self.get_type(field.type)
@@ -1204,9 +1112,7 @@ if api is None:
                         addr = segment.start + match_start
                         if data[match_start] == 0xE8 or data[match_start] == 0xE9:
                             addr += 5
-                            addr += struct.unpack(
-                                "<I", data[match_start + 1 : match_start + 5]
-                            )[0]
+                            addr += struct.unpack("<I", data[match_start + 1 : match_start + 5])[0]
                         return addr
 
             def update_member_func(self, member_func, struct):
@@ -1338,7 +1244,7 @@ def run():
     idaapi.begin_type_updating(idaapi.UTP_STRUCT)
     structs_len = len(yaml.structs)
     for idx, struct in enumerate(yaml.structs):
-        print(f'{get_time()} Creating members for {idx}/{structs_len} - {struct.name}')
+        print(f"{get_time()} Creating members for {idx}/{structs_len} - {struct.name}")
         api.create_struct_members(struct)
     idaapi.end_type_updating(idaapi.UTP_STRUCT)
 
@@ -1354,11 +1260,7 @@ def run():
     if api.should_update_virt_func():
         for struct in yaml.structs:
             if struct.virtual_functions:
-                print(
-                    "{0} Updating virtual functions for {1}".format(
-                        get_time(), struct.type
-                    )
-                )
+                print("{0} Updating virtual functions for {1}".format(get_time(), struct.type))
                 for virt_func in struct.virtual_functions:
                     if virt_func.return_type != None and virt_func.parameters != None:
                         api.update_virt_func(virt_func, struct)
@@ -1366,29 +1268,17 @@ def run():
     if api.should_update_member_func():
         for struct in yaml.structs:
             if struct.member_functions != []:
-                print(
-                    "{0} Updating member functions for {1}".format(
-                        get_time(), struct.type
-                    )
-                )
+                print("{0} Updating member functions for {1}".format(get_time(), struct.type))
                 for member_func in struct.member_functions:
                     api.update_member_func(member_func, struct)
 
             if struct.static_member_functions:
-                print(
-                    "{0} Updating static member functions for {1}".format(
-                        get_time(), struct.type
-                    )
-                )
+                print("{0} Updating static member functions for {1}".format(get_time(), struct.type))
                 for member_func in struct.static_member_functions:
                     api.update_member_func(member_func, struct)
 
             if struct.static_members:
-                print(
-                    "{0} Updating static members for {1}".format(
-                        get_time(), struct.type
-                    )
-                )
+                print("{0} Updating static members for {1}".format(get_time(), struct.type))
                 for member in struct.static_members:
                     api.update_static_member(member, struct)
 

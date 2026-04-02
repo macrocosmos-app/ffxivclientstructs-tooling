@@ -29,14 +29,10 @@ class Repository:
         if self.name == "ffxiv":
             versionPath = os.path.join(self.root, "ffxivgame.ver")
         else:
-            versionPath = os.path.join(
-                self.root, "sqpack", self.name, self.name + ".ver"
-            )
+            versionPath = os.path.join(self.root, "sqpack", self.name, self.name + ".ver")
         if os.path.exists(versionPath):
             with open(versionPath, "r") as f:
-                self.version = SemanticVersion(
-                    *(int(v) for v in f.read().strip().split("."))
-                )
+                self.version = SemanticVersion(*(int(v) for v in f.read().strip().split(".")))
         else:
             self.version = SemanticVersion(0, 0, 0, 0)
 
@@ -63,9 +59,7 @@ class Repository:
 
     def __repr__(self):
         # type: () -> str
-        return "Repository: {0} ({1}) - {2}".format(
-            self.name, self.version, self.expansion_id
-        )
+        return "Repository: {0} ({1}) - {2}".format(self.name, self.version, self.expansion_id)
 
 
 class GameData:
@@ -86,9 +80,7 @@ class GameData:
     def setup(self):
         # type: () -> None
         for folder in get_game_data_folders(self.root):
-            self.repositories[self.get_repo_index(folder)] = Repository(
-                folder, self.root
-            )
+            self.repositories[self.get_repo_index(folder)] = Repository(folder, self.root)
 
         for folder in self.repositories:
             repo = self.repositories[folder]

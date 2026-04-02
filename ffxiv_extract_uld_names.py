@@ -31,9 +31,7 @@ def search_binary(ea, pattern, flag):
 
 
 def get_string(offset):
-    return ida_bytes.get_strlit_contents(offset, -1, ida_nalt.STRTYPE_TERMCHR).decode(
-        "UTF-8"
-    )
+    return ida_bytes.get_strlit_contents(offset, -1, ida_nalt.STRTYPE_TERMCHR).decode("UTF-8")
 
 
 def do_pattern(pattern):
