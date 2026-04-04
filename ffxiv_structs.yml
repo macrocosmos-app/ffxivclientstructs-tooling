@@ -1,4 +1,4 @@
-﻿enums:
+enums:
 - type: Component::Text::TextParameterType
   name: TextParameterType
   underlying: __int8
