@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 from luminapie.sqpack import SqPack, SqPackIndexHashTable
 from luminapie.file_handlers import get_game_data_folders, get_sqpack_index
 from luminapie.se_crc import Crc32
 from luminapie.exdschema import get_definitions
-from luminapie.definitions import SemanticVersion
+from luminapie.definitions import Definition, SemanticVersion
 import os
 
 crc = Crc32()
 
 
 class Repository:
-    def __init__(self, name, root):
-        # type: (str, str) -> None
+    def __init__(self, name: str, root: str) -> None:
         self.root = root
         self.name = name
         self.sqpacks: list[SqPack] = []
@@ -18,13 +19,11 @@ class Repository:
         self.expansion_id = 0
         self.get_expansion_id()
 
-    def get_expansion_id(self):
-        # type: () -> None
+    def get_expansion_id(self) -> None:
         if self.name.startswith("ex"):
             self.expansion_id = int(self.name.removeprefix("ex"))
 
-    def parse_version(self):
-        # type: () -> None
+    def parse_version(self) -> None:
         versionPath = ""
         if self.name == "ffxiv":
             versionPath = os.path.join(self.root, "ffxivgame.ver")
@@ -36,8 +35,7 @@ class Repository:
         else:
             self.version = SemanticVersion(0, 0, 0, 0)
 
-    def setup_indexes(self):
-        # type: () -> None
+    def setup_indexes(self) -> None:
         for file in get_sqpack_index(self.root, self.name):
             self.sqpacks.append(SqPack(self.root, file))
 
@@ -46,39 +44,33 @@ class Repository:
             for indexes in sqpack.hash_table:
                 self.index[indexes.hash] = [indexes, sqpack]
 
-    def get_index(self, hash):
-        # type: (int) -> tuple[SqPackIndexHashTable, SqPack]
+    def get_index(self, hash: int) -> tuple[SqPackIndexHashTable, SqPack]:
         return self.index[hash]
 
-    def get_file(self, hash):
-        # type: (int) -> bytes
+    def get_file(self, hash: int) -> bytes:
         index, sqpack = self.get_index(hash)
         id = index.data_file_id()
         offset = index.data_file_offset()
         return SqPack(self.root, sqpack.data_files[id]).read_file(offset)
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Repository: {0} ({1}) - {2}".format(self.name, self.version, self.expansion_id)
 
 
 class GameData:
-    def __init__(self, root, load_schema=True):
-        # type: (str, bool) -> None
+    def __init__(self, root: str, load_schema: bool = True):
         self.root = root
         self.repositories: dict[int, Repository] = {}
         self.load_schema = load_schema
         self.setup()
 
-    def get_repo_index(self, folder):
-        # type: (str) -> int
+    def get_repo_index(self, folder: str) -> int:
         if folder == "ffxiv":
             return 0
         else:
             return int(folder.removeprefix("ex"))
 
-    def setup(self):
-        # type: () -> None
+    def setup(self) -> None:
         for folder in get_game_data_folders(self.root):
             self.repositories[self.get_repo_index(folder)] = Repository(folder, self.root)
 
@@ -90,24 +82,20 @@ class GameData:
         if self.load_schema:
             self.schema = get_definitions(self.repositories[0].version)
 
-    def get_file(self, file):
-        # type: (ParsedFileName) -> bytes
+    def get_file(self, file: ParsedFileName) -> bytes:
         return self.repositories[self.get_repo_index(file.repo)].get_file(file.index)
 
-    def get_exd_schema(self, key):
-        # type: (str) -> list[Definition]
+    def get_exd_schema(self, key: str) -> list[Definition]:
         if key not in self.schema:
             return []
         return self.schema[key]
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Repositories: {0}".format(self.repositories)
 
 
 class ParsedFileName:
-    def __init__(self, path):
-        # type: (str) -> None
+    def __init__(self, path: str) -> None:
         self.path = path.lower().strip()
         parts = self.path.split("/")
         self.category = parts[0]
@@ -117,8 +105,7 @@ class ParsedFileName:
         if self.repo[0] != "e" or self.repo[1] != "x" or not self.repo[2].isdigit():
             self.repo = "ffxiv"
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "ParsedFileName: {0}, category: {1}, index: {2:X}, index2: {3:X}, repo: {4}".format(
             self.path, self.category, self.index, self.index2, self.repo
         )

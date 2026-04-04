@@ -11,8 +11,7 @@ from zipfile import ZipFile
 from tempfile import TemporaryFile
 
 
-def get_url(url, supress=False):
-    # type: (str, bool) -> bytes | None
+def get_url(url: str, supress: bool = False) -> bytes | None:
     req = Request(url)
     try:
         resp = urlopen(req)
@@ -28,8 +27,7 @@ def get_url(url, supress=False):
 
 
 # TODO: Add the ability to use previous version schemas as well
-def get_definitions(schema):
-    # type: (SemanticVersion) -> dict[str, list[Definition]]
+def get_definitions(schema: SemanticVersion) -> dict[str, list[Definition]]:
     exd_schema_map = {}
     with TemporaryFile() as f:
         f.write(

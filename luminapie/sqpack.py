@@ -6,8 +6,7 @@ from luminapie.file_handlers import get_sqpack_files
 
 
 class SqPackFileInfo:
-    def __init__(self, bytes, offset):
-        # type: (bytes, int) -> None
+    def __init__(self, bytes: bytes, offset: int) -> None:
         self.header_size = int.from_bytes(bytes[0:4], byteorder="little")
         self.type = SqPackFileType(int.from_bytes(bytes[4:8], byteorder="little"))
         self.raw_file_size = int.from_bytes(bytes[8:12], byteorder="little")
@@ -20,31 +19,27 @@ class SqPackFileInfo:
 
 
 class DatStdFileBlockInfos:
-    def __init__(self, bytes):
-        # type: (bytes) -> None
+    def __init__(self, bytes: bytes) -> None:
         self.offset = int.from_bytes(bytes[0:4], byteorder="little")
         self.compressed_size = int.from_bytes(bytes[4:6], byteorder="little")
         self.uncompressed_size = int.from_bytes(bytes[6:8], byteorder="little")
 
 
 class DatBlockHeader:
-    def __init__(self, bytes):
-        # type: (bytes) -> None
+    def __init__(self, bytes: bytes) -> None:
         self.size = int.from_bytes(bytes[0:4], byteorder="little")
         self.unknown1 = int.from_bytes(bytes[4:8], byteorder="little")
         self.block_data_size = int.from_bytes(bytes[8:12], byteorder="little")
         self.dat_block_type = int.from_bytes(bytes[12:16], byteorder="little")
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Size: {0} Unknown1: {1} DatBlockType: {2} BlockDataSize: {3}".format(
             self.size, self.unknown1, self.dat_block_type, self.block_data_size
         )
 
 
 class SqPackHeader:
-    def __init__(self, file):
-        # type: (BufferedReader) -> None
+    def __init__(self, file: BufferedReader) -> None:
         self.magic = file.read(8)
         self.platform_id = SqPackPlatformId(int.from_bytes(file.read(1), byteorder="little"))
         self.unknown = file.read(3)
@@ -55,16 +50,14 @@ class SqPackHeader:
         else:
             raise Exception("PS3 is not supported")
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Magic: {0} Platform: {1} Size: {2} Version: {3} Type: {4}".format(
             self.magic, self.platform_id, self.size, self.version, self.type
         )
 
 
 class SqPackIndexHeader:
-    def __init__(self, bytes: bytes):
-        # type: (bytes) -> None
+    def __init__(self, bytes: bytes) -> None:
         self.size = int.from_bytes(bytes[0:4], byteorder="little")
         self.version = int.from_bytes(bytes[4:8], byteorder="little")
         self.index_data_offset = int.from_bytes(bytes[8:12], byteorder="little")
@@ -84,8 +77,7 @@ class SqPackIndexHeader:
         self.reserved = bytes[304:960]
         self.hash = bytes[960:1024]
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Size: {0} Version: {1} Index Data Offset: {2} Index Data Size: {3} Index Data Hash: {4} Number Of Data File: {5} Synonym Data Offset: {6} Synonym Data Size: {7} Synonym Data Hash: {8} Empty Block Data Offset: {9} Empty Block Data Size: {10} Empty Block Data Hash: {11} Dir Index Data Offset: {12} Dir Index Data Size: {13} Dir Index Data Hash: {14} Index Type: {15} Reserved: {16} Hash: {17}".format(
             self.size,
             self.version,
@@ -109,26 +101,21 @@ class SqPackIndexHeader:
 
 
 class SqPackIndexHashTable:
-    def __init__(self, bytes):
-        # type: (bytes) -> None
+    def __init__(self, bytes: bytes) -> None:
         self.hash = int.from_bytes(bytes[0:8], byteorder="little")
         self.data = int.from_bytes(bytes[8:12], byteorder="little")
         self.padding = int.from_bytes(bytes[12:16], byteorder="little")
 
-    def is_synonym(self):
-        # type: () -> bool
+    def is_synonym(self) -> bool:
         return (self.data & 0b1) == 0b1
 
-    def data_file_id(self):
-        # type: () -> int
+    def data_file_id(self) -> int:
         return (self.data & 0b1110) >> 1
 
-    def data_file_offset(self):
-        # type: () -> int
+    def data_file_offset(self) -> int:
         return (self.data & ~0xF) * 0x08
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Hash: {0} Data: {1} Padding: {2} Is Synonym: {3} Data File ID: {4} Data File Offset: {5}".format(
             self.hash,
             self.data,
@@ -140,34 +127,28 @@ class SqPackIndexHashTable:
 
 
 class SqPack:
-    def __init__(self, root, path):
-        # type: (str, str) -> None
+    def __init__(self, root: str, path: str) -> None:
         self.root = root
         self.path = path
         self.file = open(path, "rb")
         self.header = SqPackHeader(self.file)
 
-    def get_index_header(self):
-        # type: () -> SqPackIndexHeader
+    def get_index_header(self) -> SqPackIndexHeader:
         self.file.seek(self.header.size)
         return SqPackIndexHeader(self.file.read(1024))
 
-    def get_index_hash_table(self, index_header):
-        # type: (SqPackIndexHeader) -> list[SqPackIndexHashTable]
+    def get_index_hash_table(self, index_header: SqPackIndexHeader) -> list[SqPackIndexHashTable]:
         self.file.seek(index_header.index_data_offset)
         entry_count = index_header.index_data_size // 16
         return [SqPackIndexHashTable(self.file.read(16)) for _ in range(entry_count)]
 
-    def load_index_header(self):
-        # type: () -> None
+    def load_index_header(self) -> None:
         self.index_header = self.get_index_header()
 
-    def load_hash_table(self):
-        # type: () -> None
+    def load_hash_table(self) -> None:
         self.hash_table = self.get_index_hash_table(self.index_header)
 
-    def discover_data_files(self):
-        # type: () -> None
+    def discover_data_files(self) -> None:
         self.load_index_header()
         self.load_hash_table()
         self.data_files: list[str] = []
@@ -177,8 +158,7 @@ class SqPack:
                 if file == name:
                     self.data_files.append(file)
 
-    def read_file(self, offset):
-        # type: (int) -> list[bytes]
+    def read_file(self, offset: int) -> list[bytes]:
         if self.path.rsplit(".", 1)[1][0:3] != "dat":
             raise Exception("Not a data file")
         self.file.seek(offset)
@@ -193,8 +173,7 @@ class SqPack:
             raise Exception("Type: " + str(file_info.type) + " not implemented.")
         return data
 
-    def read_standard_file(self, file_info):
-        # type: (SqPackFileInfo) -> list[bytes]
+    def read_standard_file(self, file_info: SqPackFileInfo) -> list[bytes]:
         block_bytes = self.file.read(file_info.number_of_blocks * 8)
         data: list[bytes] = []
         for i in range(file_info.number_of_blocks):
@@ -208,6 +187,5 @@ class SqPack:
 
         return data
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "Path: {0} Header: {1}".format(os.path.join(self.root, "sqpack", self.path), self.header)
