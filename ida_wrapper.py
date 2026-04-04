@@ -1,5 +1,6 @@
 import idaapi
 import idc
+import ida_typeinf
 import ida_bytes
 import ida_nalt
 import ida_kernwin
@@ -19,11 +20,11 @@ from abc import abstractmethod
 
 class BaseIdaInterface(object):
     @abstractmethod
-    def get_struct_id(self, name):
+    def get_struct_id(self, name: str) -> int:
         pass
 
     @abstractmethod
-    def get_enum_id(self, name):
+    def get_enum_id(self, name: str) -> int:
         pass
 
     @abstractmethod
@@ -35,10 +36,10 @@ class BaseIdaInterface(object):
         """
         pass
 
-    def enum_exists(self, name: str):
+    def enum_exists(self, name: str) -> bool:
         return self.get_enum_id(name) != idaapi.BADADDR
 
-    def get_idc_type_from_ida_type(self, type: str):
+    def get_idc_type_from_ida_type(self, type: str) -> int:
         """Retrieve the idc type from the ida type.
 
         Args:
@@ -95,7 +96,7 @@ class BaseIdaInterface(object):
         else:
             return ida_bytes.stru_flag()
 
-    def get_idc_type_from_size(self, size: int, offset=0):
+    def get_idc_type_from_size(self, size: int, offset: int = 0) -> int:
         if offset == 0:
             offset = size
         if offset % 8 == 0 and size >= 8:
@@ -107,7 +108,7 @@ class BaseIdaInterface(object):
         else:
             return ida_bytes.byte_flag()
 
-    def get_size_from_idc_type(self, type: int):
+    def get_size_from_idc_type(self, type: int) -> int:
         if type == ida_bytes.byte_flag():
             return 1
         elif type == ida_bytes.word_flag():
@@ -571,7 +572,7 @@ class IdaInterface(BaseIdaInterface):
                 ida_enum.get_enum_member_bmask(mem),
             )
 
-        def delete_enum_members(self, eid: int):
+        def delete_enum_members(self, eid: int) -> None:
             """Remove all enum members
 
             Args:
@@ -1121,9 +1122,15 @@ class IdaInterface(BaseIdaInterface):
                 eid (int): The id of the enum
                 width (int): The width of the enum
             """
-            # TODO(caitlyn): handle changing the width of a bitfield enum
-
-            idc.set_enum_width(eid, width)
+            tif = ida_typeinf.tinfo_t()
+            if not tif.get_type_by_tid(eid):
+                raise RuntimeError(f'Failed to get tinfo_t for enum {eid}')
+            eti = ida_typeinf.enum_type_data_t()
+            if not tif.get_enum_details(eti):
+                raise RuntimeError(f'Failed to get enum details for enum id {eid}')
+            eti.nbytes = width
+            tif.create_enum(eti)
+            tif.set_named_type(None, idc.get_enum_name(eid), ida_typeinf.NTF_REPLACE)
 
         def get_enum_default_mask(self, eid: int):
             """Get the default bitmask for an enum
@@ -1134,7 +1141,13 @@ class IdaInterface(BaseIdaInterface):
             Returns:
                 int: The default bitmask for the enum
             """
-            width = idc.get_enum_width(eid)
+            type_info = ida_typeinf.tinfo_t()
+            type_info.get_type_by_tid(eid)
+            width = type_info.get_enum_width()
+            # https://python.docs.hex-rays.com/ida_typeinf/index.html#ida_typeinf.tinfo_t.get_enum_width
+            # 0 - unspecified, or -1 enum_type_data_t::calc_nbytes()
+            if width <= 0:
+                width = 4
             mask = (1 << (width * 8)) - 1
 
             # IDA 9+ has an issue wherein the default mask for 64-bit

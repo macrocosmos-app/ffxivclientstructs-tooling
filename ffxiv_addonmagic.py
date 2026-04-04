@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable
 
 import ida_bytes
 import ida_funcs
@@ -38,7 +38,7 @@ OUTPUT = sys.stdout
 # OUTPUT = Path(r"C:\Somewhere\On\Your\Disk\addon_magic.log").open("w")
 
 
-def read_str(ea: int) -> Optional[str]:
+def read_str(ea: int) -> str | None:
     length = ida_bytes.get_max_strlit_length(ea, ida_nalt.STRTYPE_C)
     value = ida_bytes.get_strlit_contents(ea, length, ida_nalt.STRTYPE_C)
     return value.decode("utf-8") if value else value
@@ -52,12 +52,12 @@ def is_in_rdata_segm(ea: int) -> bool:
     return get_segm_name(ea) == ".rdata"
 
 
-def get_segm_name(ea: int) -> Optional[str]:
+def get_segm_name(ea: int) -> str | None:
     return idaapi.get_segm_name(idaapi.getseg(ea))
 
 
 def get_lea_rdata_operand_strings(func_ea: int) -> Iterable[str]:
-    insn_eas: List[int] = list(idautils.FuncItems(func_ea))
+    insn_eas: list[int] = list(idautils.FuncItems(func_ea))
 
     for insn_ea in insn_eas:
         insn: insn_t = idautils.DecodeInstruction(insn_ea)

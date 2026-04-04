@@ -1,111 +1,97 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class DefinedStructBase:
-    def __init__(self, name, type, namespace):
-        # type: (str, str, str) -> None
-        self.name = name
-        self.type = type
-        self.namespace = namespace
+    name: str
+    type: str
+    namespace: str
 
 
-class DefinedStructEnum(DefinedStructBase, object):
-    def __init__(self, name, type, underlying, namespace, flags, values):
-        # type: (str, str, str, str, bool, dict[str, int]) -> None
-        super(DefinedStructEnum, self).__init__(name, type, namespace)
-        self.name = name
-        self.type = type
-        self.values = values
-        self.flags = flags
-        self.underlying = underlying
+@dataclass
+class DefinedStructEnum(DefinedStructBase):
+    underlying: str
+    flags: bool
+    values: dict[str, int]
 
 
+@dataclass
 class DefinedStructFuncParam:
-    def __init__(self, name, type):
-        # type: (str, str) -> None
-        self.name = name
-        if type == "__fastcall":
-            self.type = "__int64"
-        else:
-            self.type = type
+    name: str
+    type: str
+
+    def __post_init__(self) -> None:
+        if self.type == '__fastcall':
+            self.type = '__int64'
 
 
+@dataclass
 class DefinedStructVFunc:
-    def __init__(self, name, return_type, offset, parameters):
-        # type: (str, str, int, list[DefinedStructFuncParam]) -> None
-        self.name = name
-        self.return_type = return_type
-        self.offset = offset
-        self.parameters = parameters
+    name: str
+    return_type: str | None
+    offset: int
+    parameters: list[DefinedStructFuncParam]
 
 
+@dataclass
 class DefinedStructMemFunc:
-    def __init__(self, signature, return_type, parameters, name):
-        # type: (str, str, list[DefinedStructFuncParam], str) -> None
-        self.signature = signature
-        self.return_type = return_type
-        self.parameters = parameters
-        self.name = name
+    signature: str
+    return_type: str
+    parameters: list[DefinedStructFuncParam]
+    name: str
+
+@dataclass
+class DefinedStructField(DefinedStructFuncParam):
+    offset: int
+    base: bool
 
 
-class DefinedStructField(DefinedStructFuncParam, object):
-    def __init__(self, name, type, offset, base):
-        # type: (str, str, int, bool) -> None
-        super(DefinedStructField, self).__init__(name, type)
-        self.offset = offset
-        self.base = base
+@dataclass
+class DefinedStructFuncField(DefinedStructField):
+    return_type: str | None
+    params: list[DefinedStructFuncParam] | None
+
+    # The original version of this function had a params kwarg but stored as parameters
+    @property
+    def parameters(self) -> list[DefinedStructFuncParam] | None:
+        return self.params
 
 
-class DefinedStructFuncField(DefinedStructField, object):
-    def __init__(self, name, type, offset, base, return_type, params):
-        # type: (str, str, int, bool, str | None, list[DefinedStructFuncParam] | None) -> None
-        super(DefinedStructFuncField, self).__init__(name, type, offset, base)
-        self.return_type = return_type
-        self.parameters = params
-
-
+@dataclass
 class DefinedStructStaticMember:
-    def __init__(self, signature, relative_offsets, return_type, is_pointer):
-        # type: (str, list[int], str, bool) -> None
-        self.signature = signature
-        self.relative_offsets = relative_offsets
-        self.return_type = return_type
-        self.is_pointer = is_pointer
+    signature: str
+    relative_offsets: list[int]
+    return_type: str
+    is_pointer: bool
 
 
-class DefinedStructFixedField(DefinedStructField, object):
+@dataclass
+class DefinedStructFixedField(DefinedStructField):
+    size: str | None
+
+
+class DefinedStructFixedFieldOld(DefinedStructField, object):
     def __init__(self, name, type, offset, base, size):
         # type: (str, str, int, bool, str | None) -> None
         super(DefinedStructFixedField, self).__init__(name, type, offset, base)
         self.size = size
 
+@dataclass
+class DefinedStruct(DefinedStructBase):
+    fields: list[DefinedStructField]
+    size: int | None
+    vtable_size: int | None
+    virtual_functions: list[DefinedStructVFunc] | None
+    member_functions: list[DefinedStructMemFunc]
+    union: bool
+    static_member_functions: list[DefinedStructMemFunc] | None
+    static_members: list[DefinedStructStaticMember] | None
 
-class DefinedStruct(DefinedStructBase, object):
-    def __init__(
-        self,
-        name,
-        type,
-        namespace,
-        fields,
-        size,
-        vtable_size,
-        virtual_functions,
-        member_functions,
-        union,
-        static_member_functions,
-        static_members,
-    ):
-        # type: (str, str, str, list[DefinedStructField], int | None, int | None, list[DefinedStructVFunc] | None, list[DefinedStructMemFunc], str, list[DefinedStructMemFunc] | None, list[DefinedStructStaticMember] | None) -> None
-        super(DefinedStruct, self).__init__(name, type, namespace)
-        self.fields = fields
-        self.size = size
-        self.vtable_size = vtable_size
-        self.virtual_functions = virtual_functions
-        self.member_functions = member_functions
-        self.union = bool(union)
-        self.static_member_functions = static_member_functions
-        self.static_members = static_members
+    def __post_init__(self) -> None:
+        self.union = bool(self.union)
 
 
+@dataclass
 class DefinedStructExport:
-    def __init__(self, enums, structs):
-        # type: (list[DefinedStructEnum], list[DefinedStruct]) -> None
-        self.enums = enums
-        self.structs = structs
+    enums: list[DefinedStructEnum]
+    structs: list[DefinedStruct]

@@ -1,4 +1,3 @@
-from typing import Optional
 from dataclasses import dataclass, field
 
 
@@ -6,13 +5,13 @@ from dataclasses import dataclass, field
 class DefinedDataClassInstance:
     ea: int
     pointer: bool = False
-    name: Optional[str] = None
+    name: str | None = None
 
 
 @dataclass
 class DefinedDataClassVtable:
     ea: int
-    base: Optional[str] = None
+    base: str | None = None
 
 
 @dataclass

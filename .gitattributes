@@ -2,5 +2,6 @@
 * text eol=crlf
 *.png binary
 
-ida/ffxiv_client_structs*.h linguist-generated=true
-ida/ffxiv_structs.yml linguist-generated=true
+*.yml text eol=lf
+ffxiv_client_structs*.h linguist-generated=true
+ffxiv_structs.yml linguist-generated=true
