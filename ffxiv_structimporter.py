@@ -283,6 +283,12 @@ if api is None:
                     e = self.create_enum(fullname)
 
                 self.set_enum_width(e, self.get_size_from_ida_type(enum.underlying))
+
+                # bump to 64-bit if any values exceed the current width
+                current_mask = self.get_enum_default_mask(e)
+                if any(v > current_mask for v in enum.values.values()):
+                    self.set_enum_width(e, 8)
+
                 if self.is_signed(enum.underlying):
                     self.set_enum_flag(e, 0x20000)
                 if enum.flags:
