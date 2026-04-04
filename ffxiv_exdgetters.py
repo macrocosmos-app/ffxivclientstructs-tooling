@@ -9,27 +9,24 @@ from os.path import join
 from luminapie.game_data import GameData, ParsedFileName
 from luminapie.excel import ExcelListFile, ExcelHeaderFile
 from abc import abstractmethod
+from pathlib import Path
 
 
 class BaseApi:
     @abstractmethod
-    def create_enum_struct(self, name, values, width=0):
-        # type: (str, dict[int, str], int) -> None
+    def create_enum_struct(self, name: str, values: dict[int, str], width: int = 0) -> None:
         pass
 
     @abstractmethod
-    def create_struct(self, name, fields):
-        # type: (str, dict[str, str]) -> None
+    def create_struct(self, name: str, fields: dict[str, str]) -> None:
         pass
 
     @abstractmethod
-    def set_func_name(self, ea, name, cmt):
-        # type: (int, str, str) -> None
+    def set_func_name(self, ea: int, name: str, cmt: str) -> None:
         pass
 
     @abstractmethod
-    def process_pattern(self, pattern):
-        # type: (str) -> None
+    def process_pattern(self, pattern: str) -> None:
         pass
 
 
@@ -126,8 +123,7 @@ if api is None:
 
                         ida_typeinf.apply_tinfo(ea, tif, ida_typeinf.TINFO_DEFINITE)
 
-            def create_enum_struct(self, name, values, width=0):
-                # type: (str, dict[int, str], int) -> None
+            def create_enum_struct(self, name: str, values: dict[int, str], width: int = 0):
                 if len(name.split("::")) > 3:
                     sheet_name = name.split("::")[-2]
                 else:
@@ -244,8 +240,7 @@ if api is None:
     else:
         # noinspection PyUnresolvedReferences
         class GhidraApi(BaseApi):
-            def create_enum_struct(self, name, values, width=0):
-                # type: (str, dict[int, str], int) -> None
+            def create_enum_struct(self, name: str, values: dict[int, str], width: int = 0):
                 path = self.get_datatype_path(name)
                 enum_dt = EnumDataType(path.getCategoryPath(), path.getDataTypeName(), width or 8)
                 is_sheets_enum = name == "Component::Exd::SheetsEnum"
@@ -265,8 +260,7 @@ if api is None:
                 else:
                     dt.replaceWith(enum_dt)
 
-            def create_struct(self, name, fields):
-                # type: (str, dict[str, str]) -> None
+            def create_struct(self, name: str, fields: dict[str, str]):
                 dt_path = self.get_datatype_path(name)
                 struct = StructureDataType(dt_path.getCategoryPath(), dt_path.getDataTypeName(), 0)
                 struct.setToDefaultPacking()
@@ -285,16 +279,14 @@ if api is None:
                 else:
                     dt.replaceWith(struct)
 
-            def set_func_name(self, ea, name, cmt):
-                # type: (int, str, str) -> None
+            def set_func_name(self, ea: int, name: str, cmt: str):
                 func = getFunctionAt(ea)
                 if func is not None:
                     func.setName(None, SourceType.DEFAULT)
                     func.setName(name, SourceType.USER_DEFINED)
                     func.setComment(cmt)
 
-            def process_pattern(self, pattern):
-                # type: (str) -> None
+            def process_pattern(self, pattern: str):
                 (suffix, _) = exd_func_patterns[pattern]
                 pattern = "".join(["\\x" + x if x != "?" else "." for x in pattern.split(" ")])
                 if suffix is not None:
@@ -341,8 +333,7 @@ if api is None:
                         "__fastcall", return_var, arg_vars, update_type, False, SourceType.USER_DEFINED
                     )
 
-            def get_sheet_index(self, ea):
-                # type: (Address) -> int
+            def get_sheet_index(self, ea: 'Address') -> int:
                 func = getFunctionAt(ea)
                 if func is None and disassemble(ea):
                     func = createFunction(ea, None)
@@ -357,8 +348,7 @@ if api is None:
                         return self.get_rdx_arg(insn, min_address)
                 return -1
 
-            def get_rdx_arg(self, insn, min_address):
-                # type: (Instruction, int) -> int
+            def get_rdx_arg(self, insn: 'Instruction', min_address: int) -> int:
                 target = insn.getRegister("RDX")
                 while insn is not None and insn.getMinAddress().getOffset() >= min_address:
                     if monitor.isCancelled():
@@ -374,8 +364,7 @@ if api is None:
                         return value.getValue()
                 return -1
 
-            def get_datatype_path(self, name):
-                # type: (str) -> DataTypePath
+            def get_datatype_path(self, name: str) -> 'DataTypePath':
                 if name == "__int8":
                     name = "char"
                 if name == "__int16":
@@ -404,12 +393,10 @@ if api is None:
     print("Warning: No API available, exiting.")
     exit(1)
 
-
-f = open(join(getenv("APPDATA"), "XIVLauncher", "launcherConfigV3.json"), "r")
-
-config = load(f)
-
-f.close()
+# TODO: this is brittle, do more checks
+APPDATA = Path(getenv('APPDATA') or '/')
+with open(APPDATA / 'XIVLauncher' / 'launcherConfigV3.json', 'r') as f:
+    config = load(f)
 
 game_data = GameData(join(config["GamePath"], "game"))
 

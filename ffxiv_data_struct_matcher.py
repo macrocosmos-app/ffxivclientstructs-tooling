@@ -1,3 +1,5 @@
+from pathlib import Path
+from typing import Final
 import idaapi
 import idc
 import ida_bytes
@@ -26,16 +28,16 @@ def get_image_base():
     return idaapi.get_imagebase()
 
 
-dataDir = os.path.dirname(os.path.realpath(__file__))
-structFileName = os.path.join(dataDir, "ffxiv_structs.yml")
-dataFileName = os.path.join(dataDir, "data.yml")
+DATA_DIR: Final[Path] = Path(__file__).parent
+STRUCT_FILE_NAME: Final[Path] = DATA_DIR / 'ffxiv_structs.yml'
+DATA_FILE_NAME: Final[Path] = DATA_DIR / 'data.yml'
 
 ida = IdaInterface()
 
 
 def get_structs() -> DefinedStructExport:
     dic: dict[str, dict[str, list[dict[str, str | int | list[dict[str, str | int]]]]]] = load(
-        open(structFileName), Loader=Loader
+        open(STRUCT_FILE_NAME), Loader=Loader
     )
     enums = []
     structs = []
@@ -161,9 +163,9 @@ def get_structs() -> DefinedStructExport:
     return DefinedStructExport(enums, structs)
 
 
-def get_data():
+def get_data() -> DefinedData:
     dic: dict[str, str | dict[int, str] | dict[str, dict[str, list[dict[str, int | bool | str]] | dict[int, str]]]] = (
-        load(open(dataFileName), Loader=Loader)
+        load(open(DATA_FILE_NAME), Loader=Loader)
     )
     classes = []
     for className, classInstance in dic["classes"].items():

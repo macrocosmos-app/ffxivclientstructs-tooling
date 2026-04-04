@@ -284,17 +284,12 @@ if api is None:
 
                 self.set_enum_width(e, self.get_size_from_ida_type(enum.underlying))
 
-                # bump to 64-bit if any values exceed the current width
-                current_mask = self.get_enum_default_mask(e)
-                if any(v > current_mask for v in enum.values.values()):
-                    self.set_enum_width(e, 8)
-
                 if self.is_signed(enum.underlying):
                     self.set_enum_flag(e, 0x20000)
                 if enum.flags:
-                    if idaapi.IDA_SDK_VERSION < 900:
-                        self.add_enum_member(e, "{0}.{1}".format(enum.name, "tmp"), self.get_enum_default_mask(e))
                     self.set_enum_as_bf(e)
+                    # idc.set_enum_bf resets width
+                    self.set_enum_width(e, self.get_size_from_ida_type(enum.underlying))
                 for value in enum.values:
                     self.add_enum_member(e, "{0}.{1}".format(enum.name, value), enum.values[value])
                 if enum.flags and idaapi.IDA_SDK_VERSION < 900:

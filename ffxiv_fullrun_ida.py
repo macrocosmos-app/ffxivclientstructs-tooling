@@ -1,10 +1,14 @@
 from os import path
+from pathlib import Path
+from typing import Final
 import idautils
 import ida_auto
 import idc
 import ida_kernwin
 import idaapi
 import sys
+
+SCRIPT_DIR: Final[Path] = Path(__file__).parent
 
 if (
     idaapi.IDA_SDK_VERSION >= 900
@@ -20,13 +24,13 @@ if (
     sys.exit()
 
 print("Loading ffxiv_idarename.py")
-exec(open(path.join(path.dirname(path.realpath(__file__)), "ffxiv_idarename.py")).read())
+exec(open(SCRIPT_DIR / "ffxiv_idarename.py").read())
 
 print("Loading ffxiv_exdgetters.py")
-exec(open(path.join(path.dirname(path.realpath(__file__)), "ffxiv_exdgetters.py")).read())
+exec(open(SCRIPT_DIR / "ffxiv_exdgetters.py").read())
 
 print("Loading ffxiv_structimporter.py")
-exec(open(path.join(path.dirname(path.realpath(__file__)), "ffxiv_structimporter.py")).read())
+exec(open(SCRIPT_DIR / "ffxiv_structimporter.py").read())
 
 ida_base = (
     ida_kernwin.ask_buttons(
